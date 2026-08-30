@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "enigmars-util"
+version = "1.0.0"
+description = "OS landing hub: tweaks, packages, and kernels for Linux"
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+requires-python = ">=3.12"
+authors = [{ name = "EnigmarsOS Team", email = "rishi@rishispace.dev" }]
+dependencies = ["PySide6>=6.6"]
+
+[project.scripts]
+enigmars-util = "enigmars_util.app:main"
+enigmars-util-helper = "enigmars_util_helper.__main__:main"
+
+[project.urls]
+Homepage = "https://enigmarsos.rishispace.dev"
+Repository = "https://github.com/RishiSpace/enigmars-util"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+enigmars_util = ["py.typed"]

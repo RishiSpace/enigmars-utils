@@ -1,0 +1,13 @@
+id = "gnome.night-light"
+title = "Night Light"
+summary = "Warm the display at night."
+group = "Windows convert"
+audience = ["windows-convert", "general"]
+risk = "low"
+desktop = ["gnome"]
+
+[[apply]]
+backend = "gsettings"
+schema = "org.gnome.settings-daemon.plugins.color"
+key = "night-light-enabled"
+value = "true"

@@ -1,0 +1,10 @@
+id = "timeshift"
+title = "Timeshift"
+summary = "System snapshots (good on Btrfs or rsync)"
+group = "System"
+flatpak = "io.github.teejee2008.Timeshift"
+
+[packages]
+arch = "timeshift"
+debian = "timeshift"
+fedora = "timeshift"

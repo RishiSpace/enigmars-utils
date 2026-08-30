@@ -1,0 +1,17 @@
+[[kernel]]
+package = "linux-image-generic"
+label = "Generic"
+recommended = true
+headers = "linux-headers-generic"
+
+[[kernel]]
+package = "linux-image-generic-hwe-24.04"
+label = "HWE (newer hardware)"
+recommended = false
+headers = "linux-headers-generic-hwe-24.04"
+
+[[kernel]]
+package = "linux-image-lowlatency"
+label = "Low-latency"
+recommended = false
+headers = "linux-headers-lowlatency"

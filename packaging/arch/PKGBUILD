@@ -1,0 +1,24 @@
+# Maintainer: EnigmarsOS Team <rishi@rishispace.dev>
+# Build from the repo:  cd packaging/arch && makepkg -si
+pkgname=enigmars-util
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="OS landing hub: tweaks, packages, and kernels"
+arch=('any')
+url="https://github.com/RishiSpace/enigmars-util"
+license=('GPL-3.0-or-later')
+depends=('python' 'pyside6' 'polkit' 'qt6-base')
+makedepends=('python-pip' 'python-setuptools' 'python-wheel' 'python-build')
+optdepends=(
+  'plasma-discover: software center shortcut'
+  'gnome-software: software center shortcut'
+  'flatpak: extra app source'
+  'ufw: firewall toggle on Home'
+)
+source=()
+sha256sums=()
+
+package() {
+  cd "${startdir}/../.."
+  DESTDIR="${pkgdir}" PREFIX=/usr ./scripts/install.sh
+}

@@ -1,0 +1,15 @@
+id = "plasma.double-click"
+title = "Double-click to open files"
+summary = "Windows and macOS open files on double-click. Plasma defaults to single-click."
+group = "Windows convert"
+audience = ["windows-convert", "general"]
+risk = "low"
+desktop = ["plasma"]
+
+[[apply]]
+backend = "plasma"
+file = "kdeglobals"
+group = "KDE"
+key = "SingleClick"
+value = "false"
+type = "bool"

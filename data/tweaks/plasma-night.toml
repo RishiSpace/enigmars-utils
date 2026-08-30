@@ -1,0 +1,15 @@
+id = "plasma.night-color"
+title = "Night Color"
+summary = "Warm the display at night. Helps if you used Night Light on Windows."
+group = "Windows convert"
+audience = ["windows-convert", "general"]
+risk = "low"
+desktop = ["plasma"]
+
+[[apply]]
+backend = "plasma"
+file = "kwinrc"
+group = "NightColor"
+key = "Active"
+value = "true"
+type = "bool"

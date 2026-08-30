@@ -1,0 +1,15 @@
+id = "plasma.reduce-animations"
+title = "Reduce animations"
+summary = "Snappier windows. Closer to a typical Windows desktop."
+group = "Performance"
+audience = ["windows-convert", "general"]
+risk = "low"
+desktop = ["plasma"]
+
+[[apply]]
+backend = "plasma"
+file = "kdeglobals"
+group = "KDE"
+key = "AnimationDurationFactor"
+value = "0.5"
+type = "double"

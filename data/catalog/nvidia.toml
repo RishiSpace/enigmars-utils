@@ -1,0 +1,8 @@
+id = "nvidia-open"
+title = "NVIDIA open kernel module"
+summary = "Turing and newer. Pair with linux-headers / DKMS on Arch."
+group = "Drivers"
+
+[packages]
+arch = "nvidia-open"
+fedora = "akmod-nvidia"

@@ -1,0 +1,15 @@
+id = "plasma.no-userfeedback"
+title = "Disable KDE UserFeedback"
+summary = "Do not participate in KDE's optional user feedback. EnigmarsOS already defaults this off."
+group = "Privacy"
+audience = ["general"]
+risk = "low"
+desktop = ["plasma"]
+
+[[apply]]
+backend = "plasma"
+file = "PlasmaUserFeedback"
+group = "UserFeedback"
+key = "Enabled"
+value = "false"
+type = "bool"

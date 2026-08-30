@@ -1,0 +1,13 @@
+id = "gnome.double-click"
+title = "Double-click to open files"
+summary = "Match Windows Explorer: files open on double-click."
+group = "Windows convert"
+audience = ["windows-convert", "general"]
+risk = "low"
+desktop = ["gnome"]
+
+[[apply]]
+backend = "gsettings"
+schema = "org.gnome.nautilus.preferences"
+key = "click-policy"
+value = "double"

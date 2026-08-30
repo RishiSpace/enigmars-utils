@@ -1,0 +1,5 @@
+[[kernel]]
+package = "kernel-default"
+label = "Default"
+recommended = true
+headers = "kernel-default-devel"

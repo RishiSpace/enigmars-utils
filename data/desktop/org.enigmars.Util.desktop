@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Enigmars Utils
+GenericName=Welcome
+Comment=Landing hub for tweaks, packages, and kernels
+Exec=enigmars-util
+Icon=enigmarsos
+Terminal=false
+Categories=System;Settings;
+Keywords=welcome;setup;kernel;packages;tweaks;
+StartupNotify=true
+X-KDE-autostart-after=panel

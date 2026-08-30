@@ -1,0 +1,5 @@
+#!/usr/bin/python3
+"""Installed as /usr/libexec/enigmars-util-helper when not using the console script symlink."""
+from enigmars_util_helper.__main__ import main
+
+raise SystemExit(main())

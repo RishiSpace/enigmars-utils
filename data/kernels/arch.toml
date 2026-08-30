@@ -1,0 +1,35 @@
+[[kernel]]
+package = "linux-enigmarsos"
+label = "EnigmarsOS (BORE)"
+recommended = true
+headers = "linux-enigmarsos-headers"
+
+[[kernel]]
+package = "linux-cachyos"
+label = "CachyOS"
+recommended = false
+headers = "linux-cachyos-headers"
+
+[[kernel]]
+package = "linux"
+label = "Arch stable"
+recommended = false
+headers = "linux-headers"
+
+[[kernel]]
+package = "linux-lts"
+label = "Long-term support"
+recommended = false
+headers = "linux-lts-headers"
+
+[[kernel]]
+package = "linux-zen"
+label = "Zen (desktop)"
+recommended = false
+headers = "linux-zen-headers"
+
+[[kernel]]
+package = "linux-hardened"
+label = "Hardened"
+recommended = false
+headers = "linux-hardened-headers"

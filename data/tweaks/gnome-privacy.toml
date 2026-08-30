@@ -1,0 +1,13 @@
+id = "gnome.no-file-history"
+title = "Disable recent-file history"
+summary = "Stop GNOME from remembering recently used files."
+group = "Privacy"
+audience = ["general"]
+risk = "low"
+desktop = ["gnome"]
+
+[[apply]]
+backend = "gsettings"
+schema = "org.gnome.desktop.privacy"
+key = "remember-recent-files"
+value = "false"

@@ -1,0 +1,13 @@
+id = "gnome.reduce-animations"
+title = "Reduce animations"
+summary = "Disable GNOME shell animations."
+group = "Performance"
+audience = ["windows-convert", "general"]
+risk = "low"
+desktop = ["gnome"]
+
+[[apply]]
+backend = "gsettings"
+schema = "org.gnome.desktop.interface"
+key = "enable-animations"
+value = "false"

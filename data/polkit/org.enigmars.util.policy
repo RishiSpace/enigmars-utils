@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/software/polkit/policy.dtd">
+<policyconfig>
+  <vendor>EnigmarsOS</vendor>
+  <vendor_url>https://enigmarsos.rishispace.dev</vendor_url>
+  <action id="org.enigmars.util.helper">
+    <description>Run Enigmars Util privileged helper</description>
+    <message>Authentication is required to change packages, kernels, or firewall settings</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/enigmars-util-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+  </action>
+</policyconfig>

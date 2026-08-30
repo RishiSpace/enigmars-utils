@@ -1,0 +1,11 @@
+[[kernel]]
+package = "kernel"
+label = "Fedora kernel"
+recommended = true
+headers = "kernel-devel"
+
+[[kernel]]
+package = "kernel-lts"
+label = "Long-term"
+recommended = false
+headers = "kernel-lts-devel"
