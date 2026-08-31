@@ -1,0 +1,32 @@
+#!/bin/sh
+# Launcher used as AppRun and usr/bin/enigmars-util inside the AppImage.
+set -e
+SELF="$(readlink -f "$0")"
+if [ -n "${APPDIR:-}" ]; then
+  :
+elif [ "$(basename "$SELF")" = "AppRun" ]; then
+  APPDIR="$(dirname "$SELF")"
+else
+  APPDIR="$(CDPATH= cd -- "$(dirname "$SELF")/../.." && pwd)"
+fi
+
+export PATH="$APPDIR/usr/bin:$PATH"
+export PYTHONHOME="$APPDIR/usr"
+export PYTHONPATH="$APPDIR/usr/lib/enigmars-utils${PYTHONPATH:+:$PYTHONPATH}"
+export ENIGMARS_UTIL_DATA="$APPDIR/usr/share/enigmars-util"
+# Bundled helper is not registered with polkit; privileged actions still need
+# a distro package. Keep PATH so the GUI can find python/qt.
+for plug in "$APPDIR"/usr/lib/python3.*/site-packages/PySide6/Qt/plugins \
+            "$APPDIR"/usr/lib/python3.*/site-packages/PySide6/qt6/plugins; do
+  if [ -d "$plug" ]; then
+    export QT_PLUGIN_PATH="$plug${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
+    qml="$(dirname "$plug")/qml"
+    if [ -d "$qml" ]; then
+      export QML2_IMPORT_PATH="$qml${QML2_IMPORT_PATH:+:$QML2_IMPORT_PATH}"
+    fi
+    break
+  fi
+done
+unset PYTHONNOUSERSITE
+export PYTHONNOUSERSITE=1
+exec "$APPDIR/usr/bin/python3" -m enigmars_util "$@"

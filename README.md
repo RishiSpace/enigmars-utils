@@ -23,11 +23,12 @@ Privileged buttons need the helper installed.
 ```bash
 make deb        # dist/enigmars-utils_*.deb
 make rpm        # dist/enigmars-utils-*.noarch.rpm
+make appimage   # dist/Enigmars_Utils-*-x86_64.AppImage
 make pkg-arch   # packaging/arch/enigmars-utils-*.pkg.tar.zst
 ```
 
-Pushes to `main` also build `.deb` + `.rpm` on GitHub Actions and attach them to
-the **Latest** release. See [docs/PACKAGING.md](docs/PACKAGING.md).
+Pushes to `main` also build `.deb`, `.rpm`, and `.AppImage` on GitHub Actions
+and attach them to the **Latest** release. See [docs/PACKAGING.md](docs/PACKAGING.md).
 
 ## Install (Arch / EnigmarsOS)
 

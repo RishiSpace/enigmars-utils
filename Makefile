@@ -1,7 +1,7 @@
 PYTHON ?= python3
 export PYTHONPATH := src
 
-.PHONY: test run helper-check install deb rpm pkg-arch
+.PHONY: test run helper-check install deb rpm appimage pkg-arch
 
 test:
 	$(PYTHON) -m unittest discover -s tests -v
@@ -20,6 +20,9 @@ deb:
 
 rpm:
 	./packaging/rpm/build-rpm.sh
+
+appimage:
+	./packaging/appimage/build-appimage.sh
 
 pkg-arch:
 	cd packaging/arch && makepkg -f -p PKGBUILD.local

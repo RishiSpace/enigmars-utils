@@ -15,12 +15,17 @@ Build artifacts from a checkout:
 ```bash
 make deb        # dist/enigmars-utils_1.0.0_all.deb
 make rpm        # dist/enigmars-utils-1.0.0-1.noarch.rpm  (needs rpmbuild)
+make appimage   # dist/Enigmars_Utils-1.0.0-x86_64.AppImage
 make pkg-arch   # packaging/arch/enigmars-utils-1.0.0-1-any.pkg.tar.zst
 ```
 
-GitHub Actions (`.github/workflows/packages.yml`) builds the `.deb` and `.rpm` on
-every push to `main` and publishes them on the **Latest** GitHub Release. Version
-tags (`v1.0.0`, …) get a matching named release.
+GitHub Actions (`.github/workflows/packages.yml`) builds `.deb`, `.rpm`, and
+`.AppImage` on every push to `main` and publishes them on the **Latest** GitHub
+Release. Version tags (`v1.0.0`, …) get a matching named release.
+
+The AppImage bundles Python and PySide6. Privileged actions (package/kernel
+updates, sbctl) still need a system helper/polkit policy from the `.deb`/`.rpm`
+or `scripts/install.sh`.
 
 ## Debian / Ubuntu (`.deb`)
 
