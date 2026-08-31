@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Secure Boot page: sbctl install/enrollment/enabled/Setup Mode status, firmware reboot with instructions, resume into the Secure Boot tab after login, enroll keys including Microsoft (`sbctl enroll-keys -m`)
+
 ## 1.0.0
 
 First production release of Enigmars Util.

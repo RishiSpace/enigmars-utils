@@ -1,0 +1,34 @@
+# Maintainer: RishiSpace <rishikesh.giridhar@outlook.com>
+# AUR VCS package (builds latest main). Source repo must be public for AUR.
+pkgname=enigmars-utils-git
+pkgver=1.0.0.r0.g0000000
+pkgrel=1
+pkgdesc="Qt landing hub: tweaks, packages, kernels, and Secure Boot for Linux (git)"
+arch=('any')
+url="https://github.com/RishiSpace/enigmars-utils"
+license=('GPL-3.0-or-later')
+depends=('python' 'pyside6' 'polkit' 'qt6-base')
+makedepends=('git')
+optdepends=(
+  'sbctl: Secure Boot key enrollment'
+  'ufw: firewall toggle'
+  'plasma-discover: software center shortcut'
+)
+provides=('enigmars-utils' 'enigmars-util')
+conflicts=('enigmars-utils' 'enigmars-util')
+source=("git+https://github.com/RishiSpace/enigmars-utils.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd enigmars-utils
+  if git describe --long --tags >/dev/null 2>&1; then
+    git describe --long --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+  else
+    printf "1.0.0.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+  fi
+}
+
+package() {
+  cd enigmars-utils
+  DESTDIR="$pkgdir" PREFIX=/usr ./scripts/install.sh
+}

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 import shutil
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -17,11 +17,13 @@ from PySide6.QtWidgets import (
 )
 
 from enigmars_util import autostart
+from enigmars_util.health import assess, overall_level
 from enigmars_util.paths import icon_path
 from enigmars_util.privileged import ufw_cmd
 from enigmars_util.profile import HostProfile
+from enigmars_util.secureboot import probe_secure_boot
 from enigmars_util.tweaks import TweakError, apply_pack, windows_pack
-from enigmars_util.ui.widgets import Card, Chip, JobPane, button, confirm, info, warn
+from enigmars_util.ui.widgets import Card, Chip, HealthPanel, JobPane, button, confirm, info, warn
 
 LOGO_SIZE = 72
 
@@ -44,14 +46,15 @@ class HomePage(QWidget):
         self.logo.setFixedSize(LOGO_SIZE, LOGO_SIZE)
         header.addWidget(self.logo)
         titles = QVBoxLayout()
-        self.hero = QLabel("Enigmars Utils")
+        self.hero = QLabel("Welcome")
         self.hero.setObjectName("hero")
         self.sub = QLabel("Detecting system…")
         self.sub.setObjectName("accent")
         titles.addWidget(self.hero)
         titles.addWidget(self.sub)
-        header.addLayout(titles)
-        header.addStretch()
+        header.addLayout(titles, 1)
+        self.health = HealthPanel(self._goto)
+        header.addWidget(self.health, 0, Qt.AlignmentFlag.AlignTop)
         root.addLayout(header)
 
         self.chips = QHBoxLayout()
@@ -61,6 +64,7 @@ class HomePage(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         inner = QWidget()
+        self._inner = inner
         self.grid = QGridLayout(inner)
         self.grid.setSpacing(12)
         actions = Card("Get started")
@@ -72,6 +76,7 @@ class HomePage(QWidget):
                 ("Packages", lambda: self._goto("packages")),
                 ("Kernels", lambda: self._goto("kernel")),
                 ("Drivers", lambda: self._goto("drivers")),
+                ("Secure Boot", lambda: self._goto("secure-boot")),
                 ("About", lambda: self._goto("about")),
             )
         ):
@@ -103,7 +108,8 @@ class HomePage(QWidget):
         scroll.setWidget(inner)
         root.addWidget(scroll, 1)
 
-        self.job = JobPane()
+        self.job = JobPane(compact=True)
+        self.job.finished.connect(lambda _ok: self._refresh_health())
         root.addWidget(self.job)
 
         footer = QHBoxLayout()
@@ -114,6 +120,14 @@ class HomePage(QWidget):
         footer.addStretch()
         root.addLayout(footer)
         self._set_logo(None)
+
+    def unscrolled_size(self) -> QSize:
+        """Size needed to show Get started / cards without the inner scrollbar."""
+        self._inner.adjustSize()
+        inner = self._inner.sizeHint().expandedTo(self._inner.minimumSizeHint())
+        header_h = max(self.health.sizeHint().height(), LOGO_SIZE)
+        extra = header_h + 36 + self.job.sizeHint().height() + 40 + 32
+        return QSize(max(inner.width() + 24, 720), inner.height() + extra)
 
     def _update(self) -> None:
         self._goto("packages")
@@ -138,10 +152,11 @@ class HomePage(QWidget):
 
     def set_profile(self, profile: HostProfile) -> None:
         self._profile = profile
-        self.hero.setText("Enigmars Utils")
+        self.hero.setText(f"Welcome to {profile.pretty_name}")
         self.sub.setText(
             f"{profile.desktop} · {profile.session} · {profile.native_pm_label} · {profile.bootloader}"
         )
+        self._refresh_health()
         while self.chips.count():
             item = self.chips.takeAt(0)
             w = item.widget()
@@ -167,6 +182,12 @@ class HomePage(QWidget):
             f"{gpu}"
         )
         self._set_logo(profile)
+
+    def _refresh_health(self) -> None:
+        if not self._profile:
+            return
+        items = assess(self._profile, probe_secure_boot())
+        self.health.set_items(items, overall_level(items))
 
     def _windows_pack(self) -> None:
         if not self._profile:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QThread, Qt, Signal
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtCore import QSize, QThread, Qt, Signal
+from PySide6.QtGui import QCloseEvent, QGuiApplication
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -12,13 +12,17 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from enigmars_util.ui.layout import clamp_launch_size
+
 from enigmars_util.probe import probe_host
 from enigmars_util.profile import HostProfile
+from enigmars_util.secureboot import load_resume_phase
 from enigmars_util.ui.pages.about import AboutPage
 from enigmars_util.ui.pages.drivers import DriversPage
 from enigmars_util.ui.pages.home import HomePage
 from enigmars_util.ui.pages.kernel import KernelPage
 from enigmars_util.ui.pages.packages import PackagesPage
+from enigmars_util.ui.pages.secureboot import SecureBootPage
 from enigmars_util.ui.pages.tweaks import TweaksPage
 
 
@@ -30,12 +34,12 @@ class _ProbeThread(QThread):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self) -> None:
+    def __init__(self, start_page: str | None = None) -> None:
         super().__init__()
         self.setWindowTitle("Enigmars Utils")
-        self.setMinimumSize(960, 640)
-        self.resize(1080, 720)
+        self.setMinimumSize(720, 520)
         self._profile: HostProfile | None = None
+        self._auto_fit = True
 
         root = QWidget()
         root.setObjectName("root")
@@ -55,6 +59,7 @@ class MainWindow(QMainWindow):
         self.packages = PackagesPage()
         self.kernel = KernelPage()
         self.drivers = DriversPage()
+        self.secureboot = SecureBootPage()
         self.about = AboutPage()
         pages = (
             ("home", "Home", self.home),
@@ -62,6 +67,7 @@ class MainWindow(QMainWindow):
             ("packages", "Packages", self.packages),
             ("kernel", "Kernel", self.kernel),
             ("drivers", "Drivers", self.drivers),
+            ("secure-boot", "Secure Boot", self.secureboot),
             ("about", "About", self.about),
         )
         for key, label, widget in pages:
@@ -77,11 +83,38 @@ class MainWindow(QMainWindow):
         layout.addWidget(nav)
         layout.addWidget(self.stack, 1)
         self._order = [p[0] for p in pages]
-        self.show_page("home")
+        initial = start_page or ("secure-boot" if load_resume_phase() else "home")
+        self.show_page(initial if initial in self._order else "home")
 
         self._probe = _ProbeThread(self)
         self._probe.done.connect(self._on_profile)
         self._probe.start()
+        self._fit_launch_size()
+
+    def _preferred_size(self) -> QSize:
+        home = self.home.unscrolled_size()
+        nav_w = 180 + 12
+        chrome = 40
+        return QSize(home.width() + nav_w + 32, home.height() + chrome)
+
+    def _available_size(self) -> QSize:
+        screen = self.screen() or QGuiApplication.primaryScreen()
+        if screen is None:
+            return QSize(1280, 720)
+        geo = screen.availableGeometry()
+        return QSize(geo.width(), geo.height())
+
+    def _fit_launch_size(self) -> None:
+        if not self._auto_fit:
+            return
+        size = clamp_launch_size(self._preferred_size(), self._available_size())
+        self.setMinimumSize(QSize(min(720, size.width()), min(520, size.height())))
+        self.resize(size)
+        screen = self.screen() or QGuiApplication.primaryScreen()
+        if screen is not None:
+            frame = self.frameGeometry()
+            frame.moveCenter(screen.availableGeometry().center())
+            self.move(frame.topLeft())
 
     def closeEvent(self, event: QCloseEvent) -> None:
         if self._probe.isRunning():
@@ -107,5 +140,15 @@ class MainWindow(QMainWindow):
             return
         self._profile = profile
         self.setWindowTitle("Enigmars Utils")
-        for page in (self.home, self.tweaks, self.packages, self.kernel, self.drivers, self.about):
+        for page in (
+            self.home,
+            self.tweaks,
+            self.packages,
+            self.kernel,
+            self.drivers,
+            self.secureboot,
+            self.about,
+        ):
             page.set_profile(profile)
+        self._fit_launch_size()
+        self._auto_fit = False

@@ -29,6 +29,27 @@ QLabel#accent {{
 QLabel#muted {{
     color: {MUTED};
 }}
+QLabel#healthOk {{
+    color: #3DDC97;
+    font-weight: 600;
+}}
+QLabel#healthWarn {{
+    color: #FFC857;
+    font-weight: 600;
+}}
+QLabel#healthBad {{
+    color: #FF5C7A;
+    font-weight: 600;
+}}
+QLabel#healthUnknown {{
+    color: {MUTED};
+    font-weight: 600;
+}}
+QFrame#health {{
+    background-color: {CARD};
+    border: 1px solid {BORDER};
+    border-radius: 14px;
+}}
 QLabel#cardTitle {{
     font-size: 15px;
     font-weight: 600;

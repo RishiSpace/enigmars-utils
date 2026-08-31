@@ -21,6 +21,10 @@ class HelperTest(unittest.TestCase):
         rc = main(["pkg-install", "foo;bar"])
         self.assertEqual(rc, 2)
 
+    def test_sbctl_enroll_rejects_extra_args(self) -> None:
+        rc = main(["sbctl-enroll", "extra"])
+        self.assertEqual(rc, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

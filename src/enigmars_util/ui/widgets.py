@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from enigmars_util.audit import log_action
+from enigmars_util.health import HealthItem
 from enigmars_util.protocol import RESULT_PREFIX
 
 
@@ -43,10 +44,83 @@ class Chip(QLabel):
         self.setMargin(4)
 
 
+class HealthPanel(QFrame):
+    """Compact PC Health card for the Home header (top-right)."""
+
+    def __init__(self, goto: Callable[[str], None], parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("health")
+        self.setFixedWidth(300)
+        self._goto = goto
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(14, 12, 14, 12)
+        layout.setSpacing(6)
+        head = QHBoxLayout()
+        title = QLabel("PC Health")
+        title.setObjectName("cardTitle")
+        self.badge = QLabel("…")
+        self.badge.setObjectName("healthUnknown")
+        head.addWidget(title)
+        head.addStretch()
+        head.addWidget(self.badge)
+        layout.addLayout(head)
+        self._rows = QVBoxLayout()
+        self._rows.setSpacing(4)
+        layout.addLayout(self._rows)
+
+    def set_items(self, items: list[HealthItem], overall: str) -> None:
+        while self._rows.count():
+            item = self._rows.takeAt(0)
+            w = item.widget()
+            if w:
+                w.deleteLater()
+        labels = {"ok": "Healthy", "warn": "Attention", "bad": "Critical", "unknown": "Unknown"}
+        obj = {
+            "ok": "healthOk",
+            "warn": "healthWarn",
+            "bad": "healthBad",
+            "unknown": "healthUnknown",
+        }.get(overall, "healthUnknown")
+        self.badge.setText(labels.get(overall, overall))
+        self.badge.setObjectName(obj)
+        self.badge.style().unpolish(self.badge)
+        self.badge.style().polish(self.badge)
+        for health in items:
+            self._rows.addWidget(_HealthRow(health, self._goto))
+
+
+class _HealthRow(QWidget):
+    def __init__(self, item: HealthItem, goto: Callable[[str], None], parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._page = item.page
+        self._goto = goto
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip(item.detail)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 2, 0, 2)
+        layout.setSpacing(8)
+        dot = QLabel("●")
+        dot.setObjectName(
+            {"ok": "healthOk", "warn": "healthWarn", "bad": "healthBad"}.get(item.level, "healthUnknown")
+        )
+        name = QLabel(item.label)
+        name.setObjectName("muted")
+        detail = QLabel(item.detail)
+        detail.setWordWrap(True)
+        layout.addWidget(dot)
+        layout.addWidget(name)
+        layout.addWidget(detail, 1)
+
+    def mouseReleaseEvent(self, event) -> None:  # noqa: ANN001
+        if event.button() == Qt.MouseButton.LeftButton and self._page:
+            self._goto(self._page)
+        super().mouseReleaseEvent(event)
+
+
 class JobPane(QWidget):
     finished = Signal(bool)
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, compact: bool = False) -> None:
         super().__init__(parent)
         self._proc: QProcess | None = None
         self._verb = ""
@@ -57,6 +131,10 @@ class JobPane(QWidget):
         self.log.setReadOnly(True)
         self.log.setMaximumBlockCount(4000)
         self.log.setPlaceholderText("Command output appears here.")
+        if compact:
+            self.log.setFixedHeight(72)
+        else:
+            self.log.setMinimumHeight(96)
         row = QHBoxLayout()
         self.cancel_btn = QPushButton("Cancel")
         self.cancel_btn.setEnabled(False)

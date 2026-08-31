@@ -1,5 +1,7 @@
 #!/bin/sh
-# Install Enigmars Util (GUI + pkexec helper + catalogs + polkit policy).
+# Install Enigmars Utils (GUI + pkexec helper + catalogs + polkit policy).
+# Does not use pip — copies the package under $PREFIX/lib/enigmars-utils.
+#
 # Usage:
 #   sudo ./scripts/install.sh
 #   DESTDIR=/tmp/pkg PREFIX=/usr ./scripts/install.sh
@@ -14,14 +16,31 @@ if [ "$(id -u)" -ne 0 ] && [ -z "$DESTDIR" ]; then
   exit 1
 fi
 
-python3 -m pip install \
-  --disable-pip-version-check \
-  --no-build-isolation \
-  --no-deps \
-  --ignore-installed \
-  --prefix="$PREFIX" \
-  --root="${DESTDIR:-/}" \
-  "$ROOT"
+lib="${DESTDIR}${PREFIX}/lib/enigmars-utils"
+install -d "$lib"
+cp -a "$ROOT/src/enigmars_util" "$ROOT/src/enigmars_util_helper" "$lib/"
+find "$lib" -type d -name '__pycache__' -prune -exec rm -rf {} +
+find "$lib" -type f -name '*.pyc' -delete
+
+install -d "${DESTDIR}${PREFIX}/bin"
+cat > "${DESTDIR}${PREFIX}/bin/enigmars-util" <<EOF
+#!/usr/bin/python3
+import sys
+sys.path.insert(0, "${PREFIX}/lib/enigmars-utils")
+from enigmars_util.app import main
+raise SystemExit(main())
+EOF
+chmod 755 "${DESTDIR}${PREFIX}/bin/enigmars-util"
+
+install -d "${DESTDIR}${PREFIX}/libexec"
+cat > "${DESTDIR}${PREFIX}/libexec/enigmars-util-helper" <<EOF
+#!/usr/bin/python3
+import sys
+sys.path.insert(0, "${PREFIX}/lib/enigmars-utils")
+from enigmars_util_helper.__main__ import main
+raise SystemExit(main())
+EOF
+chmod 755 "${DESTDIR}${PREFIX}/libexec/enigmars-util-helper"
 
 share="${DESTDIR}${PREFIX}/share/enigmars-util"
 install -d "$share"
@@ -29,7 +48,6 @@ cp -a "$ROOT/data/tweaks" "$ROOT/data/catalog" "$ROOT/data/kernels" "$ROOT/data/
 
 install -Dm644 "$ROOT/data/desktop/org.enigmars.Util.desktop" \
   "${DESTDIR}${PREFIX}/share/applications/org.enigmars.Util.desktop"
-# Same mark as EnigmarsOS, under both the OS icon name and this app's id.
 install -Dm644 "$ROOT/data/icons/EnigmarsOS.svg" \
   "${DESTDIR}${PREFIX}/share/icons/hicolor/scalable/apps/enigmarsos.svg"
 install -Dm644 "$ROOT/data/icons/EnigmarsOS.svg" \
@@ -40,15 +58,5 @@ install -Dm644 "$ROOT/data/icons/EnigmarsOS.png" \
   "${DESTDIR}${PREFIX}/share/pixmaps/enigmarsos.png"
 install -Dm644 "$ROOT/data/polkit/org.enigmars.util.policy" \
   "${DESTDIR}${PREFIX}/share/polkit-1/actions/org.enigmars.util.policy"
-
-install -d "${DESTDIR}${PREFIX}/libexec"
-helper_src="${DESTDIR}${PREFIX}/bin/enigmars-util-helper"
-if [ -e "$helper_src" ] || [ -L "$helper_src" ]; then
-  ln -sfn "${PREFIX}/bin/enigmars-util-helper" \
-    "${DESTDIR}${PREFIX}/libexec/enigmars-util-helper"
-else
-  install -Dm755 "$ROOT/packaging/libexec/enigmars-util-helper" \
-    "${DESTDIR}${PREFIX}/libexec/enigmars-util-helper"
-fi
 
 echo "Installed to ${DESTDIR}${PREFIX}"

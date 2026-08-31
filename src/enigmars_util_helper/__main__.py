@@ -3,12 +3,14 @@
 
 from __future__ import annotations
 
+import glob
 import json
 import os
 import shutil
 import subprocess
 import sys
 import syslog
+from pathlib import Path
 
 from enigmars_util.names import validate_package_list, validate_service, validate_verb
 from enigmars_util.paths import ESP_SYNC
@@ -143,6 +145,39 @@ def _pkg_cmd(verb: str, names: list[str]) -> list[str]:
     raise ValueError(f"unsupported package manager: {pm}")
 
 
+_SIGN_GLOBS = (
+    "/boot/efi/EFI/BOOT/BOOTX64.EFI",
+    "/boot/efi/EFI/BOOT/BOOTX64.efi",
+    "/boot/efi/EFI/EnigmarsOS/BOOTX64.EFI",
+    "/boot/efi/EFI/EnigmarsOS/vmlinuz-*",
+    "/boot/vmlinuz-*",
+    "/efi/EFI/BOOT/BOOTX64.EFI",
+    "/efi/EFI/EnigmarsOS/BOOTX64.EFI",
+    "/efi/EFI/EnigmarsOS/vmlinuz-*",
+)
+
+
+def _sbctl_enroll() -> int:
+    sbctl = shutil.which("sbctl") or "/usr/bin/sbctl"
+    if not Path(sbctl).is_file():
+        print("sbctl is not installed", file=sys.stderr)
+        return 1
+    _stream([sbctl, "setup", "--setup"])
+    if not Path("/var/lib/sbctl/keys/db").is_dir():
+        rc = _stream([sbctl, "create-keys"])
+        if rc != 0:
+            return rc
+    rc = _stream([sbctl, "enroll-keys", "-m"])
+    if rc != 0:
+        return rc
+    for pattern in _SIGN_GLOBS:
+        for path in glob.glob(pattern):
+            if Path(path).is_file():
+                _stream([sbctl, "sign", "-s", path])
+    _stream([sbctl, "sign-all"])
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     _harden()
@@ -194,6 +229,12 @@ def main(argv: list[str] | None = None) -> int:
             systemctl = shutil.which("systemctl") or "/usr/bin/systemctl"
             action = "enable" if verb == "service-enable" else "disable"
             rc = _stream([systemctl, action, "--now", "--", name])
+        elif verb == "sbctl-enroll":
+            rc = _sbctl_enroll()
+        elif verb == "firmware-reboot":
+            systemctl = shutil.which("systemctl") or "/usr/bin/systemctl"
+            print("Rebooting into firmware setup…")
+            rc = _stream([systemctl, "reboot", "--firmware-setup"])
         else:
             raise ValueError(f"unhandled verb {verb}")
     except ValueError as exc:

@@ -20,6 +20,8 @@ ALLOWED_VERBS = frozenset(
         "ufw-disable",
         "service-enable",
         "service-disable",
+        "sbctl-enroll",
+        "firmware-reboot",
     }
 )
 

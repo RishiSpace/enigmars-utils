@@ -1,7 +1,7 @@
 PYTHON ?= python3
 export PYTHONPATH := src
 
-.PHONY: test run helper-check install
+.PHONY: test run helper-check install deb rpm pkg-arch
 
 test:
 	$(PYTHON) -m unittest discover -s tests -v
@@ -14,3 +14,12 @@ helper-check:
 
 install:
 	./scripts/install.sh
+
+deb:
+	./packaging/debian/build-deb.sh
+
+rpm:
+	./packaging/rpm/build-rpm.sh
+
+pkg-arch:
+	cd packaging/arch && makepkg -f -p PKGBUILD.local

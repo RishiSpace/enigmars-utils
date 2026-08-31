@@ -18,6 +18,17 @@ make test
 
 Privileged buttons need the helper installed.
 
+## Packages (.deb and Arch/AUR)
+
+```bash
+make deb        # dist/enigmars-utils_*.deb
+make rpm        # dist/enigmars-utils-*.noarch.rpm
+make pkg-arch   # packaging/arch/enigmars-utils-*.pkg.tar.zst
+```
+
+Pushes to `main` also build `.deb` + `.rpm` on GitHub Actions and attach them to
+the **Latest** release. See [docs/PACKAGING.md](docs/PACKAGING.md).
+
 ## Install (Arch / EnigmarsOS)
 
 From this repo:
@@ -25,7 +36,7 @@ From this repo:
 ```bash
 sudo ./scripts/install.sh
 # or
-cd packaging/arch && makepkg -si
+cd packaging/arch && makepkg -si -p PKGBUILD.local
 ```
 
 Then launch **Enigmars Util** from the app menu, or `enigmars-util`.

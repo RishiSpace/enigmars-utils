@@ -1,9 +1,6 @@
 # Maintainer: RishiSpace <rishikesh.giridhar@outlook.com>
-# AUR release package. Requires a public GitHub tag: v$pkgver
-#
-#   git tag v1.0.0 && git push origin v1.0.0
-#   makepkg -g >> PKGBUILD   # refresh sha256sums
-#   makepkg --printsrcinfo > .SRCINFO
+# Build from the parent git checkout (no network):
+#   cd packaging/arch && makepkg -f -p PKGBUILD.local
 pkgname=enigmars-utils
 pkgver=1.0.0
 pkgrel=1
@@ -16,15 +13,13 @@ optdepends=(
   'sbctl: Secure Boot key enrollment'
   'ufw: firewall toggle'
   'plasma-discover: software center shortcut'
-  'gnome-software: software center shortcut'
-  'flatpak: extra app source'
 )
 provides=('enigmars-util')
 conflicts=('enigmars-util')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/RishiSpace/enigmars-utils/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+source=()
+sha256sums=()
 
 package() {
-  cd "$srcdir/enigmars-utils-$pkgver"
-  DESTDIR="$pkgdir" PREFIX=/usr ./scripts/install.sh
+  cd "${startdir}/../.."
+  DESTDIR="${pkgdir}" PREFIX=/usr ./scripts/install.sh
 }

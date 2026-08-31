@@ -1,0 +1,9 @@
+id = "sbctl"
+title = "sbctl"
+summary = "Secure Boot key manager"
+group = "System"
+
+[packages]
+arch = "sbctl"
+fedora = "sbctl"
+suse = "sbctl"

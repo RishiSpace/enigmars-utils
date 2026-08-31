@@ -19,7 +19,12 @@ it is on `$PATH`).
 
 Verbs: `pkg-install`, `pkg-remove`, `pkg-update`, `pkg-refresh`,
 `kernel-sync-esp`, `ufw-enable`, `ufw-disable`, `service-enable`,
-`service-disable` (services: `ufw`, `docker.socket`, `libvirtd` only).
+`service-disable` (services: `ufw`, `docker.socket`, `libvirtd` only),
+`sbctl-enroll` (create keys if needed, `enroll-keys -m`, sign ESP/boot
+kernels), `firmware-reboot` (`systemctl reboot --firmware-setup`).
+
+`--page secure-boot` (and a one-shot autostart after a firmware reboot)
+opens the Secure Boot tab so Setup Mode enrollment can continue after login.
 
 On EnigmarsOS, installing, removing, or updating `linux*` packages runs
 `/usr/share/enigmarsos/scripts/sync-esp-boot.sh`. The Qt app does not rewrite

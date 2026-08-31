@@ -12,3 +12,7 @@ venv/
 *.qmake.stash
 .coverage
 htmlcov/
+packaging/arch/*.pkg.tar.*
+packaging/arch/pkg/
+packaging/arch/src/
+packaging/arch/*.log

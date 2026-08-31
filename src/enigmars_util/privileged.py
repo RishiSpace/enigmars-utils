@@ -66,3 +66,11 @@ def ufw_cmd(enable: bool) -> list[str]:
 def service_cmd(enable: bool, name: str) -> list[str]:
     name = validate_service(name)
     return pkexec_cmd("service-enable" if enable else "service-disable", [name])
+
+
+def sbctl_enroll_cmd() -> list[str]:
+    return pkexec_cmd("sbctl-enroll")
+
+
+def firmware_reboot_cmd() -> list[str]:
+    return pkexec_cmd("firmware-reboot")
