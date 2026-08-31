@@ -9,6 +9,7 @@ MAX_PKG_NAME = 128
 MAX_PKGS = 64
 
 ALLOWED_SERVICES = frozenset({"ufw", "docker.socket", "libvirtd"})
+ALLOWED_AUR_HELPERS = frozenset({"yay", "paru"})
 ALLOWED_VERBS = frozenset(
     {
         "pkg-install",
@@ -22,6 +23,7 @@ ALLOWED_VERBS = frozenset(
         "service-disable",
         "sbctl-enroll",
         "firmware-reboot",
+        "aur-helper-setup",
     }
 )
 
@@ -57,6 +59,12 @@ def validate_verb(verb: str) -> str:
     if verb not in ALLOWED_VERBS:
         raise ValueError(f"unknown verb: {verb!r}")
     return verb
+
+
+def validate_aur_helper(name: str) -> str:
+    if name not in ALLOWED_AUR_HELPERS:
+        raise ValueError(f"aur helper not allowed: {name!r}")
+    return name
 
 
 def validate_search_query(query: str) -> str:

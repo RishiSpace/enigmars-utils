@@ -26,6 +26,12 @@ class HelperTest(unittest.TestCase):
         rc = main(["sbctl-enroll", "extra"])
         self.assertEqual(rc, 2)
 
+    def test_aur_helper_rejects_unknown_and_extra(self) -> None:
+        self.assertEqual(main(["aur-helper-setup"]), 2)
+        self.assertEqual(main(["aur-helper-setup", "pikaur"]), 2)
+        self.assertEqual(main(["aur-helper-setup", "yay", "extra"]), 2)
+        self.assertEqual(main(["aur-helper-setup", "yay;rm"]), 2)
+
     def test_appimage_helper_from_appdir(self) -> None:
         import os
         import tempfile

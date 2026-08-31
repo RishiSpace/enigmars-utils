@@ -14,9 +14,15 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from enigmars_util.aur_helpers import installed_path, spec_for
 from enigmars_util.catalog import CatalogApp, app_package_for, load_apps
 from enigmars_util.packages import PackageBackend, PackageError, Pkg, backend_for
-from enigmars_util.privileged import pkg_install_cmd, pkg_remove_cmd, pkg_update_cmd
+from enigmars_util.privileged import (
+    aur_helper_setup_cmd,
+    pkg_install_cmd,
+    pkg_remove_cmd,
+    pkg_update_cmd,
+)
 from enigmars_util.profile import HostProfile
 from enigmars_util.ui.jobs import Work
 from enigmars_util.ui.widgets import JobPane, button, confirm, warn
@@ -53,6 +59,22 @@ class PackagesPage(QWidget):
         self.hint.setObjectName("muted")
         root.addWidget(self.hint)
 
+        aur = QHBoxLayout()
+        self.aur_hint = QLabel(
+            "yay and paru are not in official pacman repos. Set them up here (clone + compile)."
+        )
+        self.aur_hint.setObjectName("muted")
+        self.aur_hint.setWordWrap(True)
+        self.yay_btn = button("Set up yay", lambda: self._setup_aur("yay"))
+        self.paru_btn = button("Set up paru", lambda: self._setup_aur("paru"))
+        aur.addWidget(self.aur_hint, 1)
+        aur.addWidget(self.yay_btn)
+        aur.addWidget(self.paru_btn)
+        self._aur_row = QWidget()
+        self._aur_row.setLayout(aur)
+        self._aur_row.setVisible(False)
+        root.addWidget(self._aur_row)
+
         split = QSplitter()
         self.catalog = QListWidget()
         self.results = QListWidget()
@@ -63,6 +85,7 @@ class PackagesPage(QWidget):
         root.addWidget(split, 1)
 
         self.job = JobPane()
+        self.job.finished.connect(lambda _ok: self._refresh_aur_buttons())
         root.addWidget(self.job)
         self.catalog.itemDoubleClicked.connect(self._install_catalog)
 
@@ -75,6 +98,9 @@ class PackagesPage(QWidget):
             self.hint.setText("Native package changes are disabled on this system (immutable or unknown PM).")
         else:
             self.hint.setText(f"Using {profile.native_pm_label}. Search native repos; catalog is on the left.")
+        show_aur = profile.native_pm == "pacman" and profile.can_mutate_native
+        self._aur_row.setVisible(show_aur)
+        self._refresh_aur_buttons()
         self.discover_btn.setVisible(bool(shutil.which("plasma-discover") or shutil.which("gnome-software")))
         for app in self._apps:
             pkg = app_package_for(app, profile)
@@ -83,6 +109,40 @@ class PackagesPage(QWidget):
             item = QListWidgetItem(f"{app.title}  —  {app.summary}")
             item.setData(int(Qt.ItemDataRole.UserRole), app)
             self.catalog.addItem(item)
+
+    def _refresh_aur_buttons(self) -> None:
+        for name, btn in (("yay", self.yay_btn), ("paru", self.paru_btn)):
+            path = installed_path(name)
+            if path:
+                btn.setText(f"{name} ready")
+            else:
+                btn.setText(f"Set up {name}")
+
+    def _setup_aur(self, name: str) -> None:
+        if not self._profile or self._profile.native_pm != "pacman" or not self._profile.can_mutate_native:
+            warn(self, "AUR helper", "yay and paru can only be set up on pacman systems.")
+            return
+        spec = spec_for(name)
+        path = installed_path(name)
+        if path:
+            body = (
+                f"{name} is already on PATH at {path}.\n\n"
+                "Run setup anyway? If it is already in /usr/bin the helper will skip the build."
+            )
+        else:
+            body = (
+                f"{name} is not in official pacman repositories.\n\n"
+                f"This will install build deps from pacman, clone {spec.git_url}, "
+                f"compile {name}, and install /usr/bin/{name}.\n\n"
+                "The GUI stays unprivileged. Authentication is for the helper.\n"
+                "A Rust build (paru) can take several minutes."
+            )
+        if not confirm(self, f"Set up {name}", body):
+            return
+        try:
+            self.job.run(aur_helper_setup_cmd(name), "aur-helper-setup")
+        except FileNotFoundError as exc:
+            warn(self, "Helper", str(exc))
 
     def _discover(self) -> None:
         for exe in ("plasma-discover", "gnome-software"):

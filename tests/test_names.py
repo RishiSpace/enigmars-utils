@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from enigmars_util.names import (
+    validate_aur_helper,
     validate_package_list,
     validate_package_name,
     validate_search_query,
@@ -31,11 +32,18 @@ class NamesTest(unittest.TestCase):
 
     def test_verb_and_service(self) -> None:
         self.assertEqual(validate_verb("pkg-install"), "pkg-install")
+        self.assertEqual(validate_verb("aur-helper-setup"), "aur-helper-setup")
         with self.assertRaises(ValueError):
             validate_verb("rm")
         self.assertEqual(validate_service("ufw"), "ufw")
         with self.assertRaises(ValueError):
             validate_service("sshd")
+        self.assertEqual(validate_aur_helper("yay"), "yay")
+        self.assertEqual(validate_aur_helper("paru"), "paru")
+        with self.assertRaises(ValueError):
+            validate_aur_helper("pikaur")
+        with self.assertRaises(ValueError):
+            validate_aur_helper("yay;id")
 
     def test_search_query(self) -> None:
         self.assertEqual(validate_search_query(" firefox "), "firefox")

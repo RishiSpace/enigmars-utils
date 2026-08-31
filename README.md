@@ -60,4 +60,5 @@ On EnigmarsOS, point `enigmarsos-welcome` at `enigmars-util` (wrapper or
 - Package names validated before they reach the helper
 - Catalogs cannot run shell
 - Helper refuses non-root, unknown verbs, and extra arguments
+- yay/paru setup is allowlisted (`aur-helper-setup yay|paru`); no general AUR
 - EnigmarsOS kernel install/remove restages the ESP via `sync-esp-boot.sh`

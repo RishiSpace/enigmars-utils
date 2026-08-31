@@ -21,7 +21,10 @@ Verbs: `pkg-install`, `pkg-remove`, `pkg-update`, `pkg-refresh`,
 `kernel-sync-esp`, `ufw-enable`, `ufw-disable`, `service-enable`,
 `service-disable` (services: `ufw`, `docker.socket`, `libvirtd` only),
 `sbctl-enroll` (create keys if needed, `enroll-keys -m`, sign ESP/boot
-kernels), `firmware-reboot` (`systemctl reboot --firmware-setup`).
+kernels), `firmware-reboot` (`systemctl reboot --firmware-setup`),
+`aur-helper-setup` (`yay` or `paru` only: pacman if the name is in the
+sync db, otherwise clone the upstream GitHub tree and compile as the
+pkexec caller, then install `/usr/bin/{yay,paru}`).
 
 `--page secure-boot` (and a one-shot autostart after a firmware reboot)
 opens the Secure Boot tab so Setup Mode enrollment can continue after login.
@@ -38,8 +41,9 @@ kernel flavor is data, not a new widget.
 
 ## Non-goals (v1)
 
-AUR, custom kernel builds, GNOME extensions from the web, running the GUI as
-root, Flatpak of this app.
+General AUR browsing, custom kernel builds, GNOME extensions from the web,
+running the GUI as root, Flatpak of this app. `yay`/`paru` bootstrap is
+allowlisted and does not execute a downloaded PKGBUILD.
 
 See the implementation plan in the repository session if present; this file is
 the in-tree contract.

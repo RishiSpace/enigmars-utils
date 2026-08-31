@@ -6,7 +6,12 @@ import os
 import shutil
 from pathlib import Path
 
-from enigmars_util.names import validate_package_list, validate_service, validate_verb
+from enigmars_util.names import (
+    validate_aur_helper,
+    validate_package_list,
+    validate_service,
+    validate_verb,
+)
 from enigmars_util.paths import HELPER_PATH
 
 
@@ -87,3 +92,8 @@ def sbctl_enroll_cmd() -> list[str]:
 
 def firmware_reboot_cmd() -> list[str]:
     return pkexec_cmd("firmware-reboot")
+
+
+def aur_helper_setup_cmd(name: str) -> list[str]:
+    name = validate_aur_helper(name)
+    return pkexec_cmd("aur-helper-setup", [name])
