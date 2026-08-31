@@ -21,7 +21,14 @@ DESTDIR="$STAGE" PREFIX=/usr "$ROOT/scripts/install.sh"
 find "$STAGE" -type d -name '__pycache__' -prune -exec rm -rf {} +
 
 install -d "$STAGE/DEBIAN"
-sed "s/^Version:.*/Version: ${VERSION}/" "$ROOT/packaging/debian/control" > "$STAGE/DEBIAN/control"
+# Installed-Size is KiB of payload only. Insert it in the same stanza
+# (a blank line would start a second package and dpkg-deb errors).
+size="$(du -sk "$STAGE/usr" | awk '{print $1}')"
+awk -v ver="$VERSION" -v size="$size" '
+  /^Version:/ { print "Version: " ver; next }
+  /^Homepage:/ { print; print "Installed-Size: " size; next }
+  { print }
+' "$ROOT/packaging/debian/control" > "$STAGE/DEBIAN/control"
 cat > "$STAGE/DEBIAN/postinst" <<'EOF'
 #!/bin/sh
 set -e
@@ -34,10 +41,6 @@ fi
 exit 0
 EOF
 chmod 755 "$STAGE/DEBIAN/postinst"
-
-# Installed-Size in KiB
-size="$(du -sk "$STAGE" | awk '{print $1}')"
-printf '\nInstalled-Size: %s\n' "$size" >> "$STAGE/DEBIAN/control"
 
 if command -v dpkg-deb >/dev/null 2>&1; then
   dpkg-deb --root-owner-group --build "$STAGE" "$OUT/$DEB_NAME"
