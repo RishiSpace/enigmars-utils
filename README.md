@@ -32,6 +32,12 @@ and attach them to the **Latest** release. See [docs/PACKAGING.md](docs/PACKAGIN
 
 ## Install (Arch / EnigmarsOS)
 
+On EnigmarsOS, clone, build, and install in one step:
+
+```bash
+curl -fsSL https://enigmarsos.rishispace.dev/utils | sh
+```
+
 From this repo:
 
 ```bash
