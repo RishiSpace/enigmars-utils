@@ -55,6 +55,10 @@ cp -a "$ROOT/data/tweaks" "$ROOT/data/catalog" "$ROOT/data/kernels" \
 install -Dm755 "$ROOT/packaging/appimage/enigmars-util.wrapper" "$APPDIR/AppRun"
 install -Dm755 "$ROOT/packaging/appimage/enigmars-util.wrapper" \
   "$APPDIR/usr/bin/enigmars-util"
+install -Dm755 "$ROOT/packaging/libexec/enigmars-util-helper" \
+  "$APPDIR/usr/libexec/enigmars-util-helper"
+install -Dm644 "$ROOT/data/polkit/org.enigmars.util.policy" \
+  "$APPDIR/usr/share/polkit-1/actions/org.enigmars.util.policy"
 
 install -Dm644 "$ROOT/data/desktop/org.enigmars.Util.desktop" \
   "$APPDIR/enigmars-utils.desktop"

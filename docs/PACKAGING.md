@@ -23,9 +23,11 @@ GitHub Actions (`.github/workflows/packages.yml`) builds `.deb`, `.rpm`, and
 `.AppImage` on every push to `main` and publishes them on the **Latest** GitHub
 Release. Version tags (`v1.0.0`, …) get a matching named release.
 
-The AppImage bundles Python and PySide6. Privileged actions (package/kernel
-updates, sbctl) still need a system helper/polkit policy from the `.deb`/`.rpm`
-or `scripts/install.sh`.
+The AppImage bundles Python, PySide6, the privileged helper, and the polkit
+policy. The first kernel/package/sbctl action runs the helper via `pkexec`; as
+root it copies the helper and policy into `/usr/libexec` and
+`/usr/share/polkit-1` so later actions use the host package manager (`pacman`,
+`apt`, `dnf`, …) and `sbctl`.
 
 ## Debian / Ubuntu (`.deb`)
 

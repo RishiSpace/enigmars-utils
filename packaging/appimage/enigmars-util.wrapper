@@ -14,8 +14,8 @@ export PATH="$APPDIR/usr/bin:$PATH"
 export PYTHONHOME="$APPDIR/usr"
 export PYTHONPATH="$APPDIR/usr/lib/enigmars-utils${PYTHONPATH:+:$PYTHONPATH}"
 export ENIGMARS_UTIL_DATA="$APPDIR/usr/share/enigmars-util"
-# Bundled helper is not registered with polkit; privileged actions still need
-# a distro package. Keep PATH so the GUI can find python/qt.
+export ENIGMARS_UTIL_HELPER="$APPDIR/usr/libexec/enigmars-util-helper"
+export APPDIR
 for plug in "$APPDIR"/usr/lib/python3.*/site-packages/PySide6/Qt/plugins \
             "$APPDIR"/usr/lib/python3.*/site-packages/PySide6/qt6/plugins; do
   if [ -d "$plug" ]; then

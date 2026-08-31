@@ -1,5 +1,75 @@
 #!/usr/bin/python3
-"""Installed as /usr/libexec/enigmars-util-helper when not using the console script symlink."""
-from enigmars_util_helper.__main__ import main
+"""Privileged helper launcher.
 
-raise SystemExit(main())
+Resolves Python modules relative to this file so pkexec can run it from an
+AppImage mount. When started as root from a non-system path, it installs
+itself to /usr/libexec (and the polkit policy) then continues.
+"""
+from __future__ import annotations
+
+import os
+import shutil
+import sys
+from pathlib import Path
+
+SYSTEM_HELPER = Path("/usr/libexec/enigmars-util-helper")
+SYSTEM_LIB = Path("/usr/lib/enigmars-utils")
+SYSTEM_POLICY = Path("/usr/share/polkit-1/actions/org.enigmars.util.policy")
+
+
+def _usr_from_helper(helper: Path) -> Path:
+    # .../usr/libexec/enigmars-util-helper -> .../usr
+    return helper.resolve().parent.parent
+
+
+def _lib_dir(helper: Path) -> Path:
+    cand = _usr_from_helper(helper) / "lib" / "enigmars-utils"
+    if (cand / "enigmars_util_helper").is_dir():
+        return cand
+    if (SYSTEM_LIB / "enigmars_util_helper").is_dir():
+        return SYSTEM_LIB
+    return cand
+
+
+def _install_from_appimage(helper: Path) -> None:
+    if os.geteuid() != 0:
+        return
+    here = helper.resolve()
+    if here == SYSTEM_HELPER:
+        return
+    usr = _usr_from_helper(here)
+    libsrc = usr / "lib" / "enigmars-utils"
+    if not (libsrc / "enigmars_util_helper" / "__main__.py").is_file():
+        return
+    SYSTEM_LIB.mkdir(parents=True, exist_ok=True)
+    for name in ("enigmars_util", "enigmars_util_helper"):
+        src = libsrc / name
+        dst = SYSTEM_LIB / name
+        if src.is_dir():
+            if dst.exists():
+                shutil.rmtree(dst)
+            shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    SYSTEM_HELPER.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(here, SYSTEM_HELPER)
+    SYSTEM_HELPER.chmod(0o755)
+    policy = usr / "share" / "polkit-1" / "actions" / "org.enigmars.util.policy"
+    if policy.is_file():
+        SYSTEM_POLICY.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(policy, SYSTEM_POLICY)
+
+
+def main() -> int:
+    helper = Path(__file__).resolve()
+    try:
+        _install_from_appimage(helper)
+    except OSError as exc:
+        print(f"helper install skipped: {exc}", file=sys.stderr)
+    lib = _lib_dir(helper)
+    sys.path.insert(0, str(lib))
+    from enigmars_util_helper.__main__ import main as helper_main
+
+    return helper_main()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -32,15 +32,8 @@ raise SystemExit(main())
 EOF
 chmod 755 "${DESTDIR}${PREFIX}/bin/enigmars-util"
 
-install -d "${DESTDIR}${PREFIX}/libexec"
-cat > "${DESTDIR}${PREFIX}/libexec/enigmars-util-helper" <<EOF
-#!/usr/bin/python3
-import sys
-sys.path.insert(0, "${PREFIX}/lib/enigmars-utils")
-from enigmars_util_helper.__main__ import main
-raise SystemExit(main())
-EOF
-chmod 755 "${DESTDIR}${PREFIX}/libexec/enigmars-util-helper"
+install -Dm755 "$ROOT/packaging/libexec/enigmars-util-helper" \
+  "${DESTDIR}${PREFIX}/libexec/enigmars-util-helper"
 
 share="${DESTDIR}${PREFIX}/share/enigmars-util"
 install -d "$share"

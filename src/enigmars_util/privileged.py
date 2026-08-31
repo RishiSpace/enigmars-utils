@@ -10,13 +10,25 @@ from enigmars_util.names import validate_package_list, validate_service, validat
 from enigmars_util.paths import HELPER_PATH
 
 
+def _appimage_helper() -> Path | None:
+    appdir = os.environ.get("APPDIR")
+    if not appdir:
+        return None
+    bundled = Path(appdir) / "usr/libexec/enigmars-util-helper"
+    return bundled if bundled.is_file() else None
+
+
 def helper_executable() -> Path | None:
+    if HELPER_PATH.is_file() and os.access(HELPER_PATH, os.X_OK):
+        return HELPER_PATH
     env = os.environ.get("ENIGMARS_UTIL_HELPER")
     if env:
         path = Path(env)
-        return path if path.is_file() else None
-    if HELPER_PATH.is_file() and os.access(HELPER_PATH, os.X_OK):
-        return HELPER_PATH
+        if path.is_file():
+            return path
+    bundled = _appimage_helper()
+    if bundled is not None:
+        return bundled
     found = shutil.which("enigmars-util-helper")
     if found:
         return Path(found)
@@ -29,7 +41,8 @@ def pkexec_cmd(verb: str, args: list[str] | None = None) -> list[str]:
     helper = helper_executable()
     if helper is None:
         raise FileNotFoundError(
-            "enigmars-util-helper is not installed (expected /usr/libexec/enigmars-util-helper)"
+            "enigmars-util-helper is not available (install the .deb/.rpm "
+            "or run from the AppImage so the helper can be registered with polkit)"
         )
     pkexec = shutil.which("pkexec")
     if not pkexec:
