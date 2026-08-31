@@ -30,7 +30,9 @@ sudo dpkg -i dist/enigmars-utils_1.0.0_all.deb
 sudo apt-get install -f   # if python3-pyside6 is missing
 ```
 
-Depends on `python3-pyside6` (Ubuntu 24.04+) and `policykit-1` or `polkitd`.
+Depends on PySide6 (`python3-pyside6` on Ubuntu 25.10+, or `pip install PySide6`
+on 24.04) and `policykit-1` or `polkitd`. GitHub Actions installs PySide6 from
+PyPI because Ubuntu 24.04 does not ship `python3-pyside6`.
 
 This is a local binary package, not an upload to Debian/Ubuntu archives.
 
