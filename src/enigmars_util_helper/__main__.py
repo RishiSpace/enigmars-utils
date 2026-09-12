@@ -20,6 +20,12 @@ from enigmars_util.names import (
     validate_service,
     validate_verb,
 )
+from enigmars_util.extras import (
+    EXTRAS_DROPIN,
+    EXTRAS_SETUP,
+    PACMAN_CONF,
+    with_extras_include,
+)
 from enigmars_util.self_update import (
     BRANCH,
     GIT_PROBE_ENV,
@@ -510,6 +516,45 @@ def _self_update() -> int:
     return 0
 
 
+def _atomic_write(path: Path, data: str, mode: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.enigmars-tmp")
+    fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(data)
+        os.chmod(tmp, mode)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+
+
+def _extras_repo_setup() -> int:
+    if _pm() != "pacman":
+        print("enigmars-extras requires pacman (Arch / EnigmarsOS).", file=sys.stderr)
+        return 1
+    if not PACMAN_CONF.is_file():
+        print(f"missing {PACMAN_CONF}", file=sys.stderr)
+        return 1
+    body = EXTRAS_SETUP if EXTRAS_SETUP.endswith("\n") else EXTRAS_SETUP + "\n"
+    print(f"writing {EXTRAS_DROPIN}")
+    _atomic_write(EXTRAS_DROPIN, body, 0o644)
+    original = PACMAN_CONF.read_text(encoding="utf-8")
+    updated = with_extras_include(original)
+    if updated != original:
+        print(f"adding Include to {PACMAN_CONF}")
+        _atomic_write(PACMAN_CONF, updated, 0o644)
+    else:
+        print(f"{PACMAN_CONF} already references enigmars-extras")
+    pacman = shutil.which("pacman") or "/usr/bin/pacman"
+    print("refreshing sync databases (pacman -Sy)")
+    return _stream([pacman, "-Sy", "--noconfirm"])
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     _harden()
@@ -577,6 +622,8 @@ def main(argv: list[str] | None = None) -> int:
             rc = _setup_aur_helper(name)
         elif verb == "self-update":
             rc = _self_update()
+        elif verb == "extras-repo-setup":
+            rc = _extras_repo_setup()
         else:
             raise ValueError(f"unhandled verb {verb}")
     except ValueError as exc:

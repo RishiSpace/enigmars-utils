@@ -13,6 +13,8 @@ from enigmars_util.packages import Pkg
 
 EXTRAS_REPO = "enigmars-extras"
 PACMAN_CONF = Path("/etc/pacman.conf")
+EXTRAS_DROPIN = Path("/etc/pacman.d/enigmars-extras.conf")
+EXTRAS_INCLUDE = "Include = /etc/pacman.d/enigmars-extras.conf"
 _TIMEOUT = 20
 
 EXTRAS_SETUP = """\
@@ -46,6 +48,27 @@ def parse_pacman_conf_repos(text: str) -> list[str]:
             if name and name != "options":
                 repos.append(name)
     return repos
+
+
+def extras_include_present(text: str) -> bool:
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, eq, rest = line.partition("=")
+        if eq and key.strip().lower() == "include" and rest.strip() == str(EXTRAS_DROPIN):
+            return True
+    return False
+
+
+def with_extras_include(text: str) -> str:
+    """Return pacman.conf text that Includes the extras drop-in, without duplicating."""
+    if extras_include_present(text) or EXTRAS_REPO in parse_pacman_conf_repos(text):
+        return text
+    body = text
+    if body and not body.endswith("\n"):
+        body += "\n"
+    return body + "\n# enigmars-extras (enigmars-util)\n" + EXTRAS_INCLUDE + "\n"
 
 
 def parse_pacman_conf_includes(text: str) -> list[str]:

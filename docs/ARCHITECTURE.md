@@ -30,8 +30,9 @@ pkexec caller, then install `/usr/bin/{yay,paru}`),
 pacman or `scripts/install.sh` otherwise).
 
 `--page enigmars-packages` lists uninstalled packages from the
-`enigmars-extras` pacman repo (if that repo is configured) and installs
-them through `pkg-install`.
+`enigmars-extras` pacman repo. If the repo is missing, **Add repo and
+refresh** writes the drop-in (`extras-repo-setup`) and runs `pacman -Sy`.
+Installs go through `pkg-install`.
 
 `--page secure-boot` (and a one-shot autostart after a firmware reboot)
 opens the Secure Boot tab so Setup Mode enrollment can continue after login.

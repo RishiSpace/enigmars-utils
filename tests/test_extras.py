@@ -4,13 +4,16 @@ import unittest
 from pathlib import Path
 
 from enigmars_util.extras import (
+    EXTRAS_INCLUDE,
     EXTRAS_REPO,
     extras_configured,
+    extras_include_present,
     parse_pacman_conf_includes,
     parse_pacman_conf_repos,
     parse_pacman_sl,
     parse_repo_list,
     probe_extras,
+    with_extras_include,
 )
 
 
@@ -80,6 +83,16 @@ class ExtrasParseTest(unittest.TestCase):
         ):
             repos = _walk_pacman_conf(Path("/etc/pacman.conf"), read_text)
         self.assertEqual(repos, ["core", "enigmars-extras"])
+
+    def test_include_is_idempotent(self) -> None:
+        base = "[options]\nHoldPkg = pacman\n[core]\nInclude = /etc/pacman.d/mirrorlist\n"
+        once = with_extras_include(base)
+        self.assertIn(EXTRAS_INCLUDE, once)
+        self.assertTrue(extras_include_present(once))
+        twice = with_extras_include(once)
+        self.assertEqual(once, twice)
+        inline = "[core]\n[enigmars-extras]\nServer = https://example.invalid\n"
+        self.assertEqual(with_extras_include(inline), inline)
 
     def test_probe_without_pacman_is_safe(self) -> None:
         import shutil

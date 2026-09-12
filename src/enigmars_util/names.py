@@ -25,6 +25,7 @@ ALLOWED_VERBS = frozenset(
         "firmware-reboot",
         "aur-helper-setup",
         "self-update",
+        "extras-repo-setup",
     }
 )
 

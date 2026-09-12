@@ -34,6 +34,7 @@ class NamesTest(unittest.TestCase):
         self.assertEqual(validate_verb("pkg-install"), "pkg-install")
         self.assertEqual(validate_verb("aur-helper-setup"), "aur-helper-setup")
         self.assertEqual(validate_verb("self-update"), "self-update")
+        self.assertEqual(validate_verb("extras-repo-setup"), "extras-repo-setup")
         with self.assertRaises(ValueError):
             validate_verb("rm")
         self.assertEqual(validate_service("ufw"), "ufw")

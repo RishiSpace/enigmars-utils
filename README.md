@@ -53,8 +53,9 @@ Then launch **Enigmars Util** from the app menu, or `enigmars-util`.
 If pacman has the `[enigmars-extras]` repo (see
 [enigmars-extras](https://github.com/RishiSpace/enigmars-extras)), the
 **Enigmars Pkgs** tab lists packages from that repo that are not installed
-and can install selected ones or all of them. The app does not add the repo
-for you.
+and can install selected ones or all of them. If the repo is missing, **Add
+repo and refresh** writes `/etc/pacman.d/enigmars-extras.conf`, Includes it
+from `pacman.conf`, and runs `pacman -Sy`.
 
 Enable “Show on login” on the Home page if you want it as a welcome screen.
 This package does not force autostart.

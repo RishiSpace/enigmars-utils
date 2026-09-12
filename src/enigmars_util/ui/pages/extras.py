@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 from enigmars_util.extras import EXTRAS_REPO, EXTRAS_SETUP, ExtrasStatus, probe_extras
 from enigmars_util.names import MAX_PKGS, validate_package_list
 from enigmars_util.packages import PackageError, Pkg, backend_for
-from enigmars_util.privileged import pkg_install_cmd
+from enigmars_util.privileged import extras_repo_setup_cmd, pkg_install_cmd
 from enigmars_util.profile import HostProfile
 from enigmars_util.ui.jobs import Work
 from enigmars_util.ui.widgets import JobPane, button, confirm, warn
@@ -59,8 +59,11 @@ class ExtrasPage(QWidget):
 
         row = QHBoxLayout()
         row.addWidget(button("Refresh", self.refresh))
+        self.add_repo_btn = button("Add repo and refresh", self._add_repo)
+        self.add_repo_btn.setVisible(False)
         self.install_sel_btn = button("Install selected", self._install_selected)
         self.install_all_btn = button("Install all missing", self._install_all)
+        row.addWidget(self.add_repo_btn)
         row.addWidget(self.install_sel_btn)
         row.addWidget(self.install_all_btn)
         row.addStretch()
@@ -120,13 +123,16 @@ class ExtrasPage(QWidget):
         self.caption.setText(status.detail)
         self.setup.setVisible(not status.configured)
         mutate = bool(self._profile and self._profile.can_mutate_native)
+        pacman = bool(self._profile and self._profile.native_pm == "pacman")
         has_missing = bool(status.missing)
+        self.add_repo_btn.setVisible(pacman and not status.configured)
+        self.add_repo_btn.setEnabled(mutate and pacman and not status.configured)
         self.install_sel_btn.setEnabled(mutate and has_missing)
         self.install_all_btn.setEnabled(mutate and has_missing)
         if not status.configured:
             self.installed_hint.setText(
-                "Add the repo to /etc/pacman.conf (or Include /etc/pacman.d/enigmars-extras.conf), "
-                "then pacman -Sy."
+                "Use Add repo and refresh to write /etc/pacman.d/enigmars-extras.conf, "
+                "Include it from pacman.conf, and run pacman -Sy."
             )
             return
         for pkg in status.missing:
@@ -157,6 +163,27 @@ class ExtrasPage(QWidget):
             if isinstance(pkg, Pkg):
                 names.append(pkg.name)
         return names
+
+    def _add_repo(self) -> None:
+        if not self._profile or self._profile.native_pm != "pacman":
+            warn(self, "Enigmars Packages", "Adding enigmars-extras requires pacman.")
+            return
+        if not self._profile.can_mutate_native:
+            warn(self, "Enigmars Packages", "Package changes are not available on this system.")
+            return
+        body = (
+            "Add the enigmars-extras pacman repo and refresh databases?\n\n"
+            "This writes /etc/pacman.d/enigmars-extras.conf, Includes it from "
+            "/etc/pacman.conf if needed, then runs pacman -Sy.\n\n"
+            f"{EXTRAS_SETUP.strip()}"
+        )
+        if not confirm(self, "Add enigmars-extras", body):
+            return
+        try:
+            self._pending_chunks = []
+            self.job.run(extras_repo_setup_cmd(), "extras-repo-setup")
+        except FileNotFoundError as exc:
+            warn(self, "Helper", str(exc))
 
     def _install_selected(self) -> None:
         names = self._checked_names()
