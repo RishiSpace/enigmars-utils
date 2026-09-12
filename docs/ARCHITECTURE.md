@@ -29,6 +29,10 @@ pkexec caller, then install `/usr/bin/{yay,paru}`),
 `origin/main` on `RishiSpace/enigmars-utils`, clone, `makepkg` on
 pacman or `scripts/install.sh` otherwise).
 
+`--page enigmars-packages` lists uninstalled packages from the
+`enigmars-extras` pacman repo (if that repo is configured) and installs
+them through `pkg-install`.
+
 `--page secure-boot` (and a one-shot autostart after a firmware reboot)
 opens the Secure Boot tab so Setup Mode enrollment can continue after login.
 

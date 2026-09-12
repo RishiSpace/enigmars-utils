@@ -21,6 +21,7 @@ from enigmars_util.self_update import UpdateStatus, check_for_update
 from enigmars_util.ui.jobs import Work
 from enigmars_util.ui.pages.about import AboutPage
 from enigmars_util.ui.pages.drivers import DriversPage
+from enigmars_util.ui.pages.extras import ExtrasPage
 from enigmars_util.ui.pages.home import HomePage
 from enigmars_util.ui.pages.kernel import KernelPage
 from enigmars_util.ui.pages.packages import PackagesPage
@@ -59,6 +60,7 @@ class MainWindow(QMainWindow):
         self.home = HomePage(self.show_page, on_update=self._home_update)
         self.tweaks = TweaksPage()
         self.packages = PackagesPage()
+        self.extras = ExtrasPage()
         self.kernel = KernelPage()
         self.drivers = DriversPage()
         self.secureboot = SecureBootPage()
@@ -67,6 +69,7 @@ class MainWindow(QMainWindow):
             ("home", "Home", self.home),
             ("tweaks", "Tweaks", self.tweaks),
             ("packages", "Packages", self.packages),
+            ("enigmars-packages", "Enigmars Pkgs", self.extras),
             ("kernel", "Kernel", self.kernel),
             ("drivers", "Drivers", self.drivers),
             ("secure-boot", "Secure Boot", self.secureboot),
@@ -124,6 +127,7 @@ class MainWindow(QMainWindow):
             self._probe.wait(4000)
         for worker in (
             getattr(self.packages, "_search_work", None),
+            getattr(self.extras, "_work", None),
             getattr(self.kernel, "_work", None),
             self._update_work,
             getattr(self.about, "_check_work", None),
@@ -153,6 +157,7 @@ class MainWindow(QMainWindow):
             self.home,
             self.tweaks,
             self.packages,
+            self.extras,
             self.kernel,
             self.drivers,
             self.secureboot,

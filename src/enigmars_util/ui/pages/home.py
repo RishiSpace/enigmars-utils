@@ -79,6 +79,7 @@ class HomePage(QWidget):
                 ("Update system", self._update),
                 ("Tweaks", lambda: self._goto("tweaks")),
                 ("Packages", lambda: self._goto("packages")),
+                ("Enigmars Pkgs", lambda: self._goto("enigmars-packages")),
                 ("Kernels", lambda: self._goto("kernel")),
                 ("Drivers", lambda: self._goto("drivers")),
                 ("Secure Boot", lambda: self._goto("secure-boot")),

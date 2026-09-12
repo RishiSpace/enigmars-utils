@@ -48,6 +48,14 @@ cd packaging/arch && makepkg -si -p PKGBUILD.local
 
 Then launch **Enigmars Util** from the app menu, or `enigmars-util`.
 
+## Enigmars Packages
+
+If pacman has the `[enigmars-extras]` repo (see
+[enigmars-extras](https://github.com/RishiSpace/enigmars-extras)), the
+**Enigmars Pkgs** tab lists packages from that repo that are not installed
+and can install selected ones or all of them. The app does not add the repo
+for you.
+
 Enable “Show on login” on the Home page if you want it as a welcome screen.
 This package does not force autostart.
 

@@ -5,6 +5,7 @@
 - Secure Boot page: sbctl install/enrollment/enabled/Setup Mode status, firmware reboot with instructions, resume into the Secure Boot tab after login, enroll keys including Microsoft (`sbctl enroll-keys -m`)
 - Packages page: Set up yay / Set up paru (pacman if present, otherwise clone+compile upstream GitHub)
 - Self-update: check origin/main, then recompile and reinstall via pkexec when HEAD has moved
+- Enigmars Packages: if the enigmars-extras pacman repo is configured, list packages that are not installed and install selected or all
 
 ## 1.0.0
 

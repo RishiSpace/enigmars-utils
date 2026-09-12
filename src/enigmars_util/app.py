@@ -15,7 +15,11 @@ from enigmars_util.ui.theme import apply_theme
 
 def _parse(argv: list[str]) -> tuple[str | None, list[str]]:
     parser = argparse.ArgumentParser(prog="enigmars-util", add_help=True)
-    parser.add_argument("--page", default="", help="Open a tab (home, tweaks, packages, kernel, drivers, secure-boot, about)")
+    parser.add_argument(
+        "--page",
+        default="",
+        help="Open a tab (home, tweaks, packages, enigmars-packages, kernel, drivers, secure-boot, about)",
+    )
     args, rest = parser.parse_known_args(argv[1:])
     page = args.page.strip() or None
     return page, [argv[0], *rest]
