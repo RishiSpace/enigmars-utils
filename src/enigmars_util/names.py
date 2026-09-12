@@ -24,6 +24,7 @@ ALLOWED_VERBS = frozenset(
         "sbctl-enroll",
         "firmware-reboot",
         "aur-helper-setup",
+        "self-update",
     }
 )
 

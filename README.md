@@ -61,4 +61,5 @@ On EnigmarsOS, point `enigmarsos-welcome` at `enigmars-util` (wrapper or
 - Catalogs cannot run shell
 - Helper refuses non-root, unknown verbs, and extra arguments
 - yay/paru setup is allowlisted (`aur-helper-setup yay|paru`); no general AUR
+- Self-update clones the hardcoded GitHub URL on `main` only (`self-update`)
 - EnigmarsOS kernel install/remove restages the ESP via `sync-esp-boot.sh`

@@ -33,6 +33,7 @@ class NamesTest(unittest.TestCase):
     def test_verb_and_service(self) -> None:
         self.assertEqual(validate_verb("pkg-install"), "pkg-install")
         self.assertEqual(validate_verb("aur-helper-setup"), "aur-helper-setup")
+        self.assertEqual(validate_verb("self-update"), "self-update")
         with self.assertRaises(ValueError):
             validate_verb("rm")
         self.assertEqual(validate_service("ufw"), "ufw")

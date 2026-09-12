@@ -24,7 +24,10 @@ Verbs: `pkg-install`, `pkg-remove`, `pkg-update`, `pkg-refresh`,
 kernels), `firmware-reboot` (`systemctl reboot --firmware-setup`),
 `aur-helper-setup` (`yay` or `paru` only: pacman if the name is in the
 sync db, otherwise clone the upstream GitHub tree and compile as the
-pkexec caller, then install `/usr/bin/{yay,paru}`).
+pkexec caller, then install `/usr/bin/{yay,paru}`),
+`self-update` (compare `/usr/share/enigmars-util/revision` to
+`origin/main` on `RishiSpace/enigmars-utils`, clone, `makepkg` on
+pacman or `scripts/install.sh` otherwise).
 
 `--page secure-boot` (and a one-shot autostart after a firmware reboot)
 opens the Secure Boot tab so Setup Mode enrollment can continue after login.

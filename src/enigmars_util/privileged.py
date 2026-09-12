@@ -97,3 +97,7 @@ def firmware_reboot_cmd() -> list[str]:
 def aur_helper_setup_cmd(name: str) -> list[str]:
     name = validate_aur_helper(name)
     return pkexec_cmd("aur-helper-setup", [name])
+
+
+def self_update_cmd() -> list[str]:
+    return pkexec_cmd("self-update")

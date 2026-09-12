@@ -17,6 +17,8 @@ from enigmars_util.ui.layout import clamp_launch_size
 from enigmars_util.probe import probe_host
 from enigmars_util.profile import HostProfile
 from enigmars_util.secureboot import load_resume_phase
+from enigmars_util.self_update import UpdateStatus, check_for_update
+from enigmars_util.ui.jobs import Work
 from enigmars_util.ui.pages.about import AboutPage
 from enigmars_util.ui.pages.drivers import DriversPage
 from enigmars_util.ui.pages.home import HomePage
@@ -89,6 +91,7 @@ class MainWindow(QMainWindow):
         self._probe = _ProbeThread(self)
         self._probe.done.connect(self._on_profile)
         self._probe.start()
+        self._update_work: Work | None = None
         self._fit_launch_size()
 
     def _preferred_size(self) -> QSize:
@@ -119,7 +122,13 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:
         if self._probe.isRunning():
             self._probe.wait(4000)
-        for worker in (getattr(self.packages, "_search_work", None), getattr(self.kernel, "_work", None)):
+        for worker in (
+            getattr(self.packages, "_search_work", None),
+            getattr(self.kernel, "_work", None),
+            self._update_work,
+            getattr(self.about, "_check_work", None),
+            getattr(self.home, "_check_work", None),
+        ):
             if worker is not None and worker.isRunning():
                 worker.wait(4000)
         super().closeEvent(event)
@@ -152,3 +161,26 @@ class MainWindow(QMainWindow):
             page.set_profile(profile)
         self._fit_launch_size()
         self._auto_fit = False
+        self._start_update_check()
+
+    def _start_update_check(self) -> None:
+        def work() -> UpdateStatus | Exception:
+            try:
+                return check_for_update()
+            except Exception as exc:  # noqa: BLE001
+                return exc
+
+        thread = Work(work, self)
+        self._update_work = thread
+
+        def done(obj: object) -> None:
+            if isinstance(obj, UpdateStatus):
+                self.home.set_update_status(obj)
+                self.about.set_update_status(obj)
+                return
+            if isinstance(obj, Exception):
+                self.home.set_update_error(str(obj))
+                self.about.set_update_error(str(obj))
+
+        thread.result.connect(done)
+        thread.start()

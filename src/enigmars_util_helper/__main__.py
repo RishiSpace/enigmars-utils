@@ -20,6 +20,15 @@ from enigmars_util.names import (
     validate_service,
     validate_verb,
 )
+from enigmars_util.self_update import (
+    BRANCH,
+    GIT_PROBE_ENV,
+    REPO_HTTPS,
+    REPO_SSH,
+    UpdateError,
+    installed_revision,
+    parse_ls_remote,
+)
 from enigmars_util.paths import ESP_SYNC
 from enigmars_util.probe import probe_host
 from enigmars_util.protocol import RESULT_PREFIX
@@ -210,7 +219,7 @@ def _invoking_user() -> tuple[int, int, str, str]:
         raise ValueError("cannot determine invoking user (PKEXEC_UID); run via pkexec from your session")
     uid = int(raw)
     if uid == 0:
-        raise ValueError("refuse to compile AUR helpers as root")
+        raise ValueError("refuse to compile as root")
     try:
         pw = pwd.getpwuid(uid)
     except KeyError as exc:
@@ -355,6 +364,152 @@ def _setup_aur_helper(name: str) -> int:
     return 0
 
 
+def _git_bin() -> str:
+    return shutil.which("git") or "/usr/bin/git"
+
+
+def _remote_main_sha() -> str:
+    git = _git_bin()
+    last = "ls-remote failed"
+    for url, allow in ((REPO_HTTPS, "https"), (REPO_SSH, "ssh:https")):
+        proc = subprocess.run(
+            [git, "ls-remote", "--", url, f"refs/heads/{BRANCH}"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env={**os.environ, "PATH": SAFE_PATH, **GIT_PROBE_ENV, "GIT_ALLOW_PROTOCOL": allow},
+        )
+        if proc.returncode == 0:
+            try:
+                return parse_ls_remote(proc.stdout or "")
+            except UpdateError as exc:
+                last = str(exc)
+                continue
+        err = (proc.stderr or proc.stdout or "ls-remote failed").strip()
+        last = err.splitlines()[-1] if err else last
+    raise ValueError(last)
+
+
+def _clone_self(dest: Path) -> int:
+    git = _git_bin()
+    extra = {**GIT_PROBE_ENV}
+    rc = 1
+    for url, allow in ((REPO_HTTPS, "https"), (REPO_SSH, "ssh:https")):
+        if dest.exists():
+            shutil.rmtree(dest)
+        print(f"cloning {url} ({BRANCH})")
+        extra["GIT_ALLOW_PROTOCOL"] = allow
+        rc = _stream(
+            [git, "clone", "--depth", "1", "--branch", BRANCH, "--", url, str(dest)],
+            extra_env=extra,
+        )
+        if rc == 0:
+            return 0
+    return rc
+
+
+def _self_update() -> int:
+    if not shutil.which("git") and _pm() == "pacman":
+        pacman = shutil.which("pacman") or "/usr/bin/pacman"
+        rc = _stream([pacman, "-S", "--needed", "--noconfirm", "--", "git"])
+        if rc != 0:
+            return rc
+    if not Path(_git_bin()).is_file() and not shutil.which("git"):
+        print("git is not installed", file=sys.stderr)
+        return 1
+
+    remote = _remote_main_sha()
+    local = installed_revision()
+    print(f"installed revision: {local or '(none)'}")
+    print(f"origin/{BRANCH}: {remote}")
+    if local and local == remote:
+        print("already on origin/main")
+        return 0
+
+    uid, gid, user, home = _invoking_user()
+    cache = Path("/var/cache/enigmars-util")
+    cache.mkdir(parents=True, exist_ok=True)
+    os.chmod(cache, 0o755)
+    workdir = cache / "self-update"
+    if workdir.exists():
+        shutil.rmtree(workdir)
+    rc = _clone_self(workdir)
+    if rc != 0:
+        return rc
+    for marker in (
+        workdir / "scripts" / "install.sh",
+        workdir / "src" / "enigmars_util" / "app.py",
+        workdir / "packaging" / "arch" / "PKGBUILD.local",
+    ):
+        if not marker.is_file():
+            print(f"clone missing {marker.name}", file=sys.stderr)
+            return 1
+
+    if _pm() == "pacman":
+        pacman = shutil.which("pacman") or "/usr/bin/pacman"
+        rc = _stream(
+            [
+                pacman,
+                "-S",
+                "--needed",
+                "--noconfirm",
+                "--",
+                "git",
+                "base-devel",
+                "python",
+                "pyside6",
+                "polkit",
+                "qt6-base",
+            ]
+        )
+        if rc != 0:
+            return rc
+        _chown_tree(workdir, uid, gid)
+        archdir = workdir / "packaging" / "arch"
+        for old in archdir.glob("enigmars-utils-*.pkg.tar.*"):
+            old.unlink()
+        makepkg = shutil.which("makepkg") or "/usr/bin/makepkg"
+        print("building Arch package (makepkg)")
+        rc = _stream(
+            [makepkg, "-f", "--noconfirm", "-p", "PKGBUILD.local"],
+            user=uid,
+            group=gid,
+            cwd=archdir,
+            extra_env={
+                "HOME": home,
+                "USER": user,
+                "LOGNAME": user,
+                "PKGDEST": str(archdir),
+            },
+        )
+        if rc != 0:
+            return rc
+        pkg = ""
+        for f in sorted(archdir.glob("enigmars-utils-*.pkg.tar.zst")):
+            pkg = str(f)
+            break
+        if not pkg:
+            print("makepkg did not produce enigmars-utils-*.pkg.tar.zst", file=sys.stderr)
+            return 1
+        print(f"installing {pkg}")
+        rc = _stream([pacman, "-U", "--noconfirm", "--", pkg])
+        if rc != 0:
+            return rc
+    else:
+        install = workdir / "scripts" / "install.sh"
+        print("installing with scripts/install.sh")
+        rc = _stream(["/bin/sh", str(install)])
+        if rc != 0:
+            return rc
+
+    shutil.rmtree(workdir, ignore_errors=True)
+    now = installed_revision()
+    print(f"installed revision now: {now or remote}")
+    print("restart Enigmars Utils to load the new build")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     _harden()
@@ -420,6 +575,8 @@ def main(argv: list[str] | None = None) -> int:
             name = validate_aur_helper(extra[0])
             detail = f"{verb} {name}"
             rc = _setup_aur_helper(name)
+        elif verb == "self-update":
+            rc = _self_update()
         else:
             raise ValueError(f"unhandled verb {verb}")
     except ValueError as exc:

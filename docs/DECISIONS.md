@@ -9,6 +9,7 @@
 | ESP sync via existing script | Avoids EnigmarsOS emergency-mode bug |
 | No general AUR / no custom kernels in v1 | Supply-chain and bricking |
 | Allowlisted yay/paru bootstrap from GitHub | Official repos omit them; no PKGBUILD execution |
+| Self-update from hardcoded origin/main | No arbitrary URLs; GUI checks, pkexec rebuilds |
 | Windows pack = composed key tweaks | No Plasma panel rewrite until reversible |
 | AMOLED QSS always | Card/hero objectNames are unreadable on stock Fusion |
 | No `/etc/xdg/autostart` in this package | User opt-in on Home; distro wrapper can still autostart |

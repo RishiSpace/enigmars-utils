@@ -26,6 +26,10 @@ class HelperTest(unittest.TestCase):
         rc = main(["sbctl-enroll", "extra"])
         self.assertEqual(rc, 2)
 
+    def test_self_update_rejects_extra_args(self) -> None:
+        self.assertEqual(main(["self-update", "extra"]), 2)
+        self.assertEqual(main(["self-update", "yay"]), 2)
+
     def test_aur_helper_rejects_unknown_and_extra(self) -> None:
         self.assertEqual(main(["aur-helper-setup"]), 2)
         self.assertEqual(main(["aur-helper-setup", "pikaur"]), 2)

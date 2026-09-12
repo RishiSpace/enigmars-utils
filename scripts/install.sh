@@ -52,4 +52,10 @@ install -Dm644 "$ROOT/data/icons/EnigmarsOS.png" \
 install -Dm644 "$ROOT/data/polkit/org.enigmars.util.policy" \
   "${DESTDIR}${PREFIX}/share/polkit-1/actions/org.enigmars.util.policy"
 
+revfile="${share}/revision"
+if command -v git >/dev/null 2>&1 \
+  && git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git -C "$ROOT" rev-parse HEAD > "$revfile"
+fi
+
 echo "Installed to ${DESTDIR}${PREFIX}"

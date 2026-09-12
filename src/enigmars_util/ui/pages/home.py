@@ -19,10 +19,12 @@ from PySide6.QtWidgets import (
 from enigmars_util import autostart
 from enigmars_util.health import assess, overall_level
 from enigmars_util.paths import icon_path
-from enigmars_util.privileged import ufw_cmd
+from enigmars_util.privileged import self_update_cmd, ufw_cmd
 from enigmars_util.profile import HostProfile
 from enigmars_util.secureboot import probe_secure_boot
+from enigmars_util.self_update import UpdateStatus, check_for_update, short_sha
 from enigmars_util.tweaks import TweakError, apply_pack, windows_pack
+from enigmars_util.ui.jobs import Work
 from enigmars_util.ui.widgets import Card, Chip, HealthPanel, JobPane, button, confirm, info, warn
 
 LOGO_SIZE = 72
@@ -39,6 +41,9 @@ class HomePage(QWidget):
         self._goto = goto
         self._on_update = on_update
         self._profile: HostProfile | None = None
+        self._status: UpdateStatus | None = None
+        self._check_work: Work | None = None
+        self._pending_self_update = False
 
         root = QVBoxLayout(self)
         header = QHBoxLayout()
@@ -78,12 +83,19 @@ class HomePage(QWidget):
                 ("Drivers", lambda: self._goto("drivers")),
                 ("Secure Boot", lambda: self._goto("secure-boot")),
                 ("About", lambda: self._goto("about")),
+                ("Update Utils", self._self_update),
             )
         ):
             b = button(label, cb)
             b.setMinimumHeight(40)
+            if label == "Update Utils":
+                self.update_btn = b
             row.addWidget(b, i // 3, i % 3)
+        self.update_hint = QLabel("Checking origin/main for Utils updates…")
+        self.update_hint.setObjectName("muted")
+        self.update_hint.setWordWrap(True)
         actions.body.addLayout(row)
+        actions.body.addWidget(self.update_hint)
         self.grid.addWidget(actions, 0, 0, 1, 2)
 
         self.win = Card(
@@ -109,7 +121,7 @@ class HomePage(QWidget):
         root.addWidget(scroll, 1)
 
         self.job = JobPane(compact=True)
-        self.job.finished.connect(lambda _ok: self._refresh_health())
+        self.job.finished.connect(self._job_finished)
         root.addWidget(self.job)
 
         footer = QHBoxLayout()
@@ -208,6 +220,102 @@ class HomePage(QWidget):
             info(self, "Windows convert", "Those tweaks were already applied.")
             return
         info(self, "Windows convert", "Applied:\n" + "\n".join(applied))
+
+    def set_update_status(self, status: UpdateStatus) -> None:
+        self._status = status
+        if status.available:
+            self.update_hint.setText(
+                f"Utils update available: {short_sha(status.local)} → {short_sha(status.remote)} on origin/main."
+            )
+            self.update_btn.setText("Update Utils")
+        else:
+            self.update_hint.setText(
+                f"Utils is on origin/main ({short_sha(status.remote)})."
+            )
+            self.update_btn.setText("Update Utils")
+
+    def set_update_error(self, message: str) -> None:
+        self.update_hint.setText(f"Could not check Utils updates: {message}")
+
+    def _self_update(self) -> None:
+        if self._status is not None and not self._status.available:
+            info(self, "Update Utils", f"Already on origin/main ({short_sha(self._status.remote)}).")
+            return
+        if self._status is None:
+            self.update_hint.setText("Checking origin/main…")
+
+            def work() -> UpdateStatus | Exception:
+                try:
+                    return check_for_update()
+                except Exception as exc:  # noqa: BLE001
+                    return exc
+
+            thread = Work(work, self)
+            self._check_work = thread
+
+            def done(obj: object) -> None:
+                if isinstance(obj, UpdateStatus):
+                    self.set_update_status(obj)
+                    if obj.available:
+                        self._confirm_install(obj)
+                    else:
+                        info(self, "Update Utils", f"Already on origin/main ({short_sha(obj.remote)}).")
+                    return
+                if isinstance(obj, Exception):
+                    self.set_update_error(str(obj))
+                    warn(self, "Update Utils", str(obj))
+
+            thread.result.connect(done)
+            thread.start()
+            return
+        self._confirm_install(self._status)
+
+    def _confirm_install(self, status: UpdateStatus) -> None:
+        body = (
+            f"Installed: {short_sha(status.local)}\n"
+            f"origin/main: {short_sha(status.remote)}\n\n"
+            "Clone main, compile, and reinstall Enigmars Utils? Restart the app afterwards."
+        )
+        if not confirm(self, "Update Enigmars Utils", body):
+            return
+        try:
+            self._pending_self_update = True
+            self.job.run(self_update_cmd(), "self-update")
+        except FileNotFoundError as exc:
+            self._pending_self_update = False
+            warn(self, "Helper", str(exc))
+
+    def _job_finished(self, ok: bool) -> None:
+        self._refresh_health()
+        if not self._pending_self_update:
+            return
+        self._pending_self_update = False
+        if not ok:
+            return
+        info(
+            self,
+            "Update Utils",
+            "Enigmars Utils was reinstalled. Restart the app to load the new build.",
+        )
+        self.update_hint.setText("Rechecking origin/main…")
+
+        def work() -> UpdateStatus | Exception:
+            try:
+                return check_for_update()
+            except Exception as exc:  # noqa: BLE001
+                return exc
+
+        thread = Work(work, self)
+        self._check_work = thread
+
+        def done(obj: object) -> None:
+            if isinstance(obj, UpdateStatus):
+                self.set_update_status(obj)
+            elif isinstance(obj, Exception):
+                self.set_update_error(str(obj))
+
+        thread.result.connect(done)
+        thread.start()
 
     def _firewall(self, enable: bool) -> None:
         if not shutil.which("ufw"):
