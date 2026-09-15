@@ -16,16 +16,26 @@ from PySide6.QtWidgets import (
 
 from enigmars_util.aur_helpers import installed_path, spec_for
 from enigmars_util.catalog import CatalogApp, app_package_for, load_apps
+from enigmars_util.chaotic import (
+    CHAOTIC_INCLUDE,
+    CHAOTIC_KEYID,
+    CHAOTIC_KEYSERVER,
+    CHAOTIC_REPO,
+    CHAOTIC_SNIPPET,
+    ChaoticStatus,
+    probe_chaotic,
+)
 from enigmars_util.packages import PackageBackend, PackageError, Pkg, backend_for
 from enigmars_util.privileged import (
     aur_helper_setup_cmd,
+    chaotic_repo_setup_cmd,
     pkg_install_cmd,
     pkg_remove_cmd,
     pkg_update_cmd,
 )
 from enigmars_util.profile import HostProfile
 from enigmars_util.ui.jobs import Work
-from enigmars_util.ui.widgets import JobPane, button, confirm, warn
+from enigmars_util.ui.widgets import Card, JobPane, button, confirm, warn
 
 
 class PackagesPage(QWidget):
@@ -36,58 +46,146 @@ class PackagesPage(QWidget):
         self._apps: list[CatalogApp] = []
         self._search_work: Work | None = None
         self._search_gen = 0
+        self._chaotic_work: Work | None = None
+        self._chaotic_gen = 0
         root = QVBoxLayout(self)
+        root.setSpacing(10)
 
-        top = QHBoxLayout()
+        title = QLabel("Packages")
+        title.setObjectName("cardTitle")
+        root.addWidget(title)
+        subtitle = QLabel(
+            "Search native repos, install catalog apps, and manage AUR helpers "
+            "plus third-party repos."
+        )
+        subtitle.setObjectName("muted")
+        subtitle.setWordWrap(True)
+        root.addWidget(subtitle)
+
+        # --- Search & actions card ---
+        search_card = Card("Search & actions")
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Search packages…")
+        self.search.setPlaceholderText("Search packages… (min. 2 characters)")
+        self.search.setClearButtonEnabled(True)
         self._debounce = QTimer(self)
         self._debounce.setSingleShot(True)
         self._debounce.setInterval(280)
         self.search.textChanged.connect(lambda _: self._debounce.start())
         self._debounce.timeout.connect(self._do_search)
-        top.addWidget(self.search, 1)
-        top.addWidget(button("Update system", self._update))
-        top.addWidget(button("Install selected", self._install))
-        top.addWidget(button("Remove selected", self._remove))
-        top.addWidget(button("Install catalog item", self._install_catalog_btn))
+        search_card.body.addWidget(self.search)
+
+        actions = QHBoxLayout()
+        actions.setContentsMargins(0, 0, 0, 0)
+        update_btn = button("Update system", self._update)
+        update_btn.setToolTip("Refresh databases and apply a full system upgrade")
+        install_btn = button("Install selected", self._install)
+        install_btn.setToolTip("Install the packages selected in Search results")
+        remove_btn = button("Remove selected", self._remove)
+        remove_btn.setToolTip("Remove the packages selected in Search results")
+        catalog_btn = button("Install catalog item", self._install_catalog_btn)
+        catalog_btn.setToolTip("Install the catalog app selected on the left")
         self.discover_btn = button("Software Center", self._discover)
-        top.addWidget(self.discover_btn)
-        root.addLayout(top)
+        self.discover_btn.setToolTip("Open Discover / GNOME Software if installed")
+        for b in (update_btn, install_btn, remove_btn, catalog_btn, self.discover_btn):
+            actions.addWidget(b)
+        actions.addStretch()
+        search_card.body.addLayout(actions)
 
         self.hint = QLabel("")
         self.hint.setObjectName("muted")
-        root.addWidget(self.hint)
+        self.hint.setWordWrap(True)
+        search_card.body.addWidget(self.hint)
+        root.addWidget(search_card)
 
+        # --- Repositories & helpers card ---
+        self._repos_card = Card("Repositories & helpers")
         aur = QHBoxLayout()
+        aur.setContentsMargins(0, 4, 0, 4)
+        aur_text = QVBoxLayout()
+        aur_title = QLabel("AUR helpers")
+        aur_title.setObjectName("cardTitle")
         self.aur_hint = QLabel(
             "yay and paru are not in official pacman repos. Set them up here (clone + compile)."
         )
         self.aur_hint.setObjectName("muted")
         self.aur_hint.setWordWrap(True)
+        aur_text.addWidget(aur_title)
+        aur_text.addWidget(self.aur_hint)
+        aur.addLayout(aur_text, 1)
         self.yay_btn = button("Set up yay", lambda: self._setup_aur("yay"))
         self.paru_btn = button("Set up paru", lambda: self._setup_aur("paru"))
-        aur.addWidget(self.aur_hint, 1)
         aur.addWidget(self.yay_btn)
         aur.addWidget(self.paru_btn)
         self._aur_row = QWidget()
         self._aur_row.setLayout(aur)
-        self._aur_row.setVisible(False)
-        root.addWidget(self._aur_row)
+
+        chaotic = QHBoxLayout()
+        chaotic.setContentsMargins(0, 4, 0, 4)
+        chaotic_text = QVBoxLayout()
+        chaotic_title = QLabel("Chaotic-AUR")
+        chaotic_title.setObjectName("cardTitle")
+        self.chaotic_status = QLabel("Checking chaotic-aur…")
+        self.chaotic_status.setObjectName("muted")
+        self.chaotic_status.setWordWrap(True)
+        chaotic_text.addWidget(chaotic_title)
+        chaotic_text.addWidget(self.chaotic_status)
+        chaotic.addLayout(chaotic_text, 1)
+        self.chaotic_btn = button("Enable chaotic-aur", self._enable_chaotic)
+        self.chaotic_btn.setToolTip(
+            "Import the Chaotic-AUR key, install keyring + mirrorlist, and add [chaotic-aur] to pacman.conf"
+        )
+        chaotic.addWidget(self.chaotic_btn)
+        self._chaotic_row = QWidget()
+        self._chaotic_row.setLayout(chaotic)
+
+        self._repos_card.body.addWidget(self._aur_row)
+        self._repos_card.body.addWidget(self._chaotic_row)
+        root.addWidget(self._repos_card)
+
+        # --- Browse section ---
+        headers = QHBoxLayout()
+        headers.setContentsMargins(0, 0, 0, 0)
+        self.catalog_header = QLabel("Catalog")
+        self.catalog_header.setObjectName("cardTitle")
+        self.catalog_count = QLabel("")
+        self.catalog_count.setObjectName("muted")
+        self.results_header = QLabel("Search results")
+        self.results_header.setObjectName("cardTitle")
+        self.results_count = QLabel("type to search")
+        self.results_count.setObjectName("muted")
+        headers.addWidget(self.catalog_header)
+        headers.addWidget(self.catalog_count)
+        headers.addStretch(1)
+        headers.addWidget(self.results_header)
+        headers.addWidget(self.results_count)
+        headers.addStretch(2)
+        browse_head = QWidget()
+        browse_head.setLayout(headers)
+        root.addWidget(browse_head)
 
         split = QSplitter()
         self.catalog = QListWidget()
+        self.catalog.setAlternatingRowColors(True)
         self.results = QListWidget()
+        self.results.setAlternatingRowColors(True)
         split.addWidget(self.catalog)
         split.addWidget(self.results)
         split.setStretchFactor(0, 1)
         split.setStretchFactor(1, 2)
         root.addWidget(split, 1)
 
+        browse_hint = QLabel("Double-click a catalog app to install • Select search results, then Install / Remove.")
+        browse_hint.setObjectName("muted")
+        browse_hint.setWordWrap(True)
+        root.addWidget(browse_hint)
+
         self.job = JobPane()
         self.job.finished.connect(lambda _ok: self._refresh_aur_buttons())
+        self.job.finished.connect(lambda _ok: self._refresh_chaotic())
         root.addWidget(self.job)
         self.catalog.itemDoubleClicked.connect(self._install_catalog)
+        self.results.itemSelectionChanged.connect(self._update_counts)
+        self._update_counts()
 
     def set_profile(self, profile: HostProfile) -> None:
         self._profile = profile
@@ -98,9 +196,14 @@ class PackagesPage(QWidget):
             self.hint.setText("Native package changes are disabled on this system (immutable or unknown PM).")
         else:
             self.hint.setText(f"Using {profile.native_pm_label}. Search native repos; catalog is on the left.")
-        show_aur = profile.native_pm == "pacman" and profile.can_mutate_native
-        self._aur_row.setVisible(show_aur)
+        is_pacman = profile.native_pm == "pacman" and profile.can_mutate_native
+        show_repos = profile.native_pm == "pacman"
+        self._aur_row.setVisible(show_repos)
+        self._chaotic_row.setVisible(show_repos)
+        self._repos_card.setVisible(show_repos)
         self._refresh_aur_buttons()
+        self._refresh_chaotic()
+        _ = is_pacman  # mutate gating happens per-button so rows stay informative
         self.discover_btn.setVisible(bool(shutil.which("plasma-discover") or shutil.which("gnome-software")))
         for app in self._apps:
             pkg = app_package_for(app, profile)
@@ -109,6 +212,17 @@ class PackagesPage(QWidget):
             item = QListWidgetItem(f"{app.title}  —  {app.summary}")
             item.setData(int(Qt.ItemDataRole.UserRole), app)
             self.catalog.addItem(item)
+        self._update_counts()
+
+    def _update_counts(self) -> None:
+        self.catalog_count.setText(f"{self.catalog.count()} apps")
+        n = self.results.count()
+        if not self.search.text().strip():
+            self.results_count.setText("type to search")
+        elif n == 1:
+            self.results_count.setText("1 package")
+        else:
+            self.results_count.setText(f"{n} packages")
 
     def _refresh_aur_buttons(self) -> None:
         for name, btn in (("yay", self.yay_btn), ("paru", self.paru_btn)):
@@ -117,6 +231,74 @@ class PackagesPage(QWidget):
                 btn.setText(f"{name} ready")
             else:
                 btn.setText(f"Set up {name}")
+            btn.setEnabled(bool(self._profile and self._profile.can_mutate_native))
+
+    def _refresh_chaotic(self) -> None:
+        self._chaotic_gen += 1
+        gen = self._chaotic_gen
+        profile = self._profile
+        if profile is None or profile.native_pm != "pacman":
+            self.chaotic_status.setText("Chaotic-AUR needs pacman (EnigmarsOS / Arch).")
+            self.chaotic_btn.setEnabled(False)
+            self.chaotic_btn.setText("Enable chaotic-aur")
+            return
+        self.chaotic_status.setText("Checking chaotic-aur…")
+        self.chaotic_btn.setEnabled(False)
+
+        def work() -> ChaoticStatus | Exception:
+            try:
+                return probe_chaotic()
+            except Exception as exc:  # noqa: BLE001
+                return exc
+
+        thread = Work(work, self)
+        self._chaotic_work = thread
+
+        def done(obj: object) -> None:
+            if gen != self._chaotic_gen:
+                return
+            mutate = bool(profile.can_mutate_native)
+            if isinstance(obj, Exception):
+                self.chaotic_status.setText(f"Could not check chaotic-aur: {obj}")
+                self.chaotic_btn.setEnabled(mutate)
+                self.chaotic_btn.setText("Enable chaotic-aur")
+                return
+            if not isinstance(obj, ChaoticStatus):
+                return
+            self.chaotic_status.setText(obj.detail)
+            if obj.configured:
+                self.chaotic_btn.setText("Repair / reinstall")
+            else:
+                self.chaotic_btn.setText("Enable chaotic-aur")
+            self.chaotic_btn.setEnabled(mutate)
+
+        thread.result.connect(done)
+        thread.start()
+
+    def _enable_chaotic(self) -> None:
+        if not self._profile or self._profile.native_pm != "pacman":
+            warn(self, "Chaotic-AUR", "Chaotic-AUR can only be enabled on pacman systems.")
+            return
+        if not self._profile.can_mutate_native:
+            warn(self, "Chaotic-AUR", "Native package changes are not available on this system.")
+            return
+        body = (
+            "Enable the Chaotic-AUR binary repo?\n\n"
+            f"1. Import + locally sign key {CHAOTIC_KEYID} from {CHAOTIC_KEYSERVER}\n"
+            "2. Install chaotic-keyring + chaotic-mirrorlist from the CDN\n"
+            f"3. Append [{CHAOTIC_REPO}] to /etc/pacman.conf:\n"
+            f"{CHAOTIC_SNIPPET.strip()}\n"
+            f"   ({CHAOTIC_INCLUDE})\n"
+            "4. Refresh sync databases (pacman -Sy)\n\n"
+            "Pre-built AUR packages install faster, but this is a third-party repo "
+            "outside Arch / EnigmarsOS control."
+        )
+        if not confirm(self, "Enable chaotic-aur", body):
+            return
+        try:
+            self.job.run(chaotic_repo_setup_cmd(), "chaotic-repo-setup")
+        except FileNotFoundError as exc:
+            warn(self, "Helper", str(exc))
 
     def _setup_aur(self, name: str) -> None:
         if not self._profile or self._profile.native_pm != "pacman" or not self._profile.can_mutate_native:
@@ -163,6 +345,7 @@ class PackagesPage(QWidget):
             return
         q = self.search.text().strip()
         self.results.clear()
+        self._update_counts()
         if len(q) < 2:
             return
         backend = self._backend
@@ -199,6 +382,7 @@ class PackagesPage(QWidget):
                 item = QListWidgetItem(f"{pkg.name}  {pkg.version}{mark}\n{pkg.description}")
                 item.setData(int(Qt.ItemDataRole.UserRole), pkg)
                 self.results.addItem(item)
+            self._update_counts()
 
         thread.result.connect(done)
         thread.start()

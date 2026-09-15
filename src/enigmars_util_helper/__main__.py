@@ -14,6 +14,13 @@ import syslog
 from pathlib import Path
 
 from enigmars_util.aur_helpers import spec_for
+from enigmars_util.chaotic import (
+    CHAOTIC_KEYID,
+    CHAOTIC_KEYRING_URL,
+    CHAOTIC_KEYSERVER,
+    CHAOTIC_MIRRORLIST_URL,
+    with_chaotic_include,
+)
 from enigmars_util.names import (
     validate_aur_helper,
     validate_package_list,
@@ -555,6 +562,41 @@ def _extras_repo_setup() -> int:
     return _stream([pacman, "-Sy", "--noconfirm"])
 
 
+def _chaotic_repo_setup() -> int:
+    if _pm() != "pacman":
+        print("chaotic-aur requires pacman (Arch / EnigmarsOS).", file=sys.stderr)
+        return 1
+    if not PACMAN_CONF.is_file():
+        print(f"missing {PACMAN_CONF}", file=sys.stderr)
+        return 1
+    pacman_key = shutil.which("pacman-key") or "/usr/bin/pacman-key"
+    if not Path(pacman_key).is_file():
+        print("pacman-key is not installed", file=sys.stderr)
+        return 1
+    pacman = shutil.which("pacman") or "/usr/bin/pacman"
+    print(f"importing Chaotic-AUR key {CHAOTIC_KEYID} from {CHAOTIC_KEYSERVER}")
+    rc = _stream([pacman_key, "--recv-key", CHAOTIC_KEYID, "--keyserver", CHAOTIC_KEYSERVER])
+    if rc != 0:
+        return rc
+    print(f"locally signing Chaotic-AUR key {CHAOTIC_KEYID}")
+    rc = _stream([pacman_key, "--lsign-key", CHAOTIC_KEYID])
+    if rc != 0:
+        return rc
+    print("installing chaotic-keyring + chaotic-mirrorlist from the CDN")
+    rc = _stream([pacman, "-U", "--noconfirm", "--", CHAOTIC_KEYRING_URL, CHAOTIC_MIRRORLIST_URL])
+    if rc != 0:
+        return rc
+    original = PACMAN_CONF.read_text(encoding="utf-8")
+    updated = with_chaotic_include(original)
+    if updated != original:
+        print(f"adding [chaotic-aur] to {PACMAN_CONF}")
+        _atomic_write(PACMAN_CONF, updated, 0o644)
+    else:
+        print(f"{PACMAN_CONF} already references chaotic-aur")
+    print("refreshing sync databases (pacman -Sy)")
+    return _stream([pacman, "-Sy", "--noconfirm"])
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     _harden()
@@ -624,6 +666,8 @@ def main(argv: list[str] | None = None) -> int:
             rc = _self_update()
         elif verb == "extras-repo-setup":
             rc = _extras_repo_setup()
+        elif verb == "chaotic-repo-setup":
+            rc = _chaotic_repo_setup()
         else:
             raise ValueError(f"unhandled verb {verb}")
     except ValueError as exc:

@@ -26,6 +26,7 @@ ALLOWED_VERBS = frozenset(
         "aur-helper-setup",
         "self-update",
         "extras-repo-setup",
+        "chaotic-repo-setup",
     }
 )
 

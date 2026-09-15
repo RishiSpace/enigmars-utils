@@ -105,3 +105,7 @@ def self_update_cmd() -> list[str]:
 
 def extras_repo_setup_cmd() -> list[str]:
     return pkexec_cmd("extras-repo-setup")
+
+
+def chaotic_repo_setup_cmd() -> list[str]:
+    return pkexec_cmd("chaotic-repo-setup")

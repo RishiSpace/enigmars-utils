@@ -29,6 +29,9 @@ class HelperTest(unittest.TestCase):
     def test_extras_repo_setup_rejects_extra_args(self) -> None:
         self.assertEqual(main(["extras-repo-setup", "extra"]), 2)
 
+    def test_chaotic_repo_setup_rejects_extra_args(self) -> None:
+        self.assertEqual(main(["chaotic-repo-setup", "extra"]), 2)
+
     def test_self_update_rejects_extra_args(self) -> None:
         self.assertEqual(main(["self-update", "extra"]), 2)
         self.assertEqual(main(["self-update", "yay"]), 2)
