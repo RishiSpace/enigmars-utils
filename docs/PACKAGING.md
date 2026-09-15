@@ -13,15 +13,15 @@ The install layout (no pip):
 Build artifacts from a checkout:
 
 ```bash
-make deb        # dist/enigmars-utils_1.1.0_all.deb
-make rpm        # dist/enigmars-utils-1.1.0-1.noarch.rpm  (needs rpmbuild)
-make appimage   # dist/Enigmars_Utils-1.1.0-x86_64.AppImage
-make pkg-arch   # packaging/arch/enigmars-utils-1.1.0-1-any.pkg.tar.zst
+make deb        # dist/enigmars-utils_1.1.2_all.deb
+make rpm        # dist/enigmars-utils-1.1.2-1.noarch.rpm  (needs rpmbuild)
+make appimage   # dist/Enigmars_Utils-1.1.2-x86_64.AppImage
+make pkg-arch   # packaging/arch/enigmars-utils-1.1.2-1-any.pkg.tar.zst
 ```
 
 GitHub Actions (`.github/workflows/packages.yml`) builds `.deb`, `.rpm`, and
 `.AppImage` on every push to `main` and publishes them on the **Latest** GitHub
-Release. Version tags (`v1.1.0`, …) get a matching named release.
+Release. Version tags (`v1.1.2`, …) get a matching named release.
 
 The AppImage bundles Python, PySide6, the privileged helper, and the polkit
 policy. The first kernel/package/sbctl action runs the helper via `pkexec`; as
@@ -33,7 +33,7 @@ root it copies the helper and policy into `/usr/libexec` and
 
 ```bash
 ./packaging/debian/build-deb.sh
-sudo dpkg -i dist/enigmars-utils_1.1.0_all.deb
+sudo dpkg -i dist/enigmars-utils_1.1.2_all.deb
 sudo apt-get install -f   # if python3-pyside6 is missing
 ```
 
@@ -57,8 +57,8 @@ makepkg -f -si -p PKGBUILD.local
 1. Tag a release matching `pkgver`:
 
    ```bash
-   git tag -s v1.1.0 -m "Enigmars Utils 1.1.0"
-   git push origin v1.1.0
+   git tag -s v1.1.2 -m "Enigmars Utils 1.1.2"
+   git push origin v1.1.2
    ```
 
 2. Put `packaging/arch/PKGBUILD` in an AUR clone and fill `sha256sums`:

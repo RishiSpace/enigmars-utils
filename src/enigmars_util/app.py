@@ -18,7 +18,7 @@ def _parse(argv: list[str]) -> tuple[str | None, list[str]]:
     parser.add_argument(
         "--page",
         default="",
-        help="Open a tab (home, tweaks, packages, enigmars-packages, kernel, drivers, secure-boot, about)",
+        help="Open a tab (home, tweaks, packages, enigmars-packages, kernel, patches, drivers, secure-boot, about)",
     )
     args, rest = parser.parse_known_args(argv[1:])
     page = args.page.strip() or None

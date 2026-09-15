@@ -25,6 +25,7 @@ from enigmars_util.ui.pages.extras import ExtrasPage
 from enigmars_util.ui.pages.home import HomePage
 from enigmars_util.ui.pages.kernel import KernelPage
 from enigmars_util.ui.pages.packages import PackagesPage
+from enigmars_util.ui.pages.patches import PatchesPage
 from enigmars_util.ui.pages.secureboot import SecureBootPage
 from enigmars_util.ui.pages.tweaks import TweaksPage
 
@@ -62,6 +63,7 @@ class MainWindow(QMainWindow):
         self.packages = PackagesPage()
         self.extras = ExtrasPage()
         self.kernel = KernelPage()
+        self.patches = PatchesPage()
         self.drivers = DriversPage()
         self.secureboot = SecureBootPage()
         self.about = AboutPage()
@@ -71,6 +73,7 @@ class MainWindow(QMainWindow):
             ("packages", "Packages", self.packages),
             ("enigmars-packages", "Enigmars Pkgs", self.extras),
             ("kernel", "Kernel", self.kernel),
+            ("patches", "Patches", self.patches),
             ("drivers", "Drivers", self.drivers),
             ("secure-boot", "Secure Boot", self.secureboot),
             ("about", "About", self.about),
@@ -129,6 +132,8 @@ class MainWindow(QMainWindow):
             getattr(self.packages, "_search_work", None),
             getattr(self.extras, "_work", None),
             getattr(self.kernel, "_work", None),
+            getattr(self.kernel, "_repo_work", None),
+            getattr(self.patches, "_patch_work", None),
             self._update_work,
             getattr(self.about, "_check_work", None),
             getattr(self.home, "_check_work", None),
@@ -159,6 +164,7 @@ class MainWindow(QMainWindow):
             self.packages,
             self.extras,
             self.kernel,
+            self.patches,
             self.drivers,
             self.secureboot,
             self.about,

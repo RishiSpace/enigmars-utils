@@ -113,3 +113,7 @@ def chaotic_repo_setup_cmd() -> list[str]:
 
 def kernel_repo_setup_cmd() -> list[str]:
     return pkexec_cmd("kernel-repo-setup")
+
+
+def kernel_repo_repair_cmd() -> list[str]:
+    return pkexec_cmd("repo-repair-kernel")

@@ -28,6 +28,7 @@ ALLOWED_VERBS = frozenset(
         "extras-repo-setup",
         "chaotic-repo-setup",
         "kernel-repo-setup",
+        "repo-repair-kernel",
     }
 )
 

@@ -37,6 +37,7 @@ class NamesTest(unittest.TestCase):
         self.assertEqual(validate_verb("extras-repo-setup"), "extras-repo-setup")
         self.assertEqual(validate_verb("chaotic-repo-setup"), "chaotic-repo-setup")
         self.assertEqual(validate_verb("kernel-repo-setup"), "kernel-repo-setup")
+        self.assertEqual(validate_verb("repo-repair-kernel"), "repo-repair-kernel")
         with self.assertRaises(ValueError):
             validate_verb("rm")
         self.assertEqual(validate_service("ufw"), "ufw")
