@@ -21,6 +21,12 @@ from enigmars_util.chaotic import (
     CHAOTIC_MIRRORLIST_URL,
     with_chaotic_include,
 )
+from enigmars_util.kernel_repos import (
+    KERNEL_DROPINS,
+    KERNEL_REPOS,
+    KERNEL_SETUPS,
+    with_kernel_include,
+)
 from enigmars_util.names import (
     validate_aur_helper,
     validate_package_list,
@@ -597,6 +603,34 @@ def _chaotic_repo_setup() -> int:
     return _stream([pacman, "-Sy", "--noconfirm"])
 
 
+def _kernel_repo_setup() -> int:
+    if _pm() != "pacman":
+        print("EnigmarsOS kernel repos require pacman (Arch / EnigmarsOS).", file=sys.stderr)
+        return 1
+    if not PACMAN_CONF.is_file():
+        print(f"missing {PACMAN_CONF}", file=sys.stderr)
+        return 1
+    for repo in KERNEL_REPOS:
+        dropin = KERNEL_DROPINS[repo]
+        body = KERNEL_SETUPS[repo]
+        if not body.endswith("\n"):
+            body += "\n"
+        print(f"writing {dropin}")
+        _atomic_write(dropin, body, 0o644)
+    original = PACMAN_CONF.read_text(encoding="utf-8")
+    updated = original
+    for repo in KERNEL_REPOS:
+        updated = with_kernel_include(updated, repo)
+    if updated != original:
+        print(f"adding EnigmarsOS kernel Includes to {PACMAN_CONF}")
+        _atomic_write(PACMAN_CONF, updated, 0o644)
+    else:
+        print(f"{PACMAN_CONF} already references the EnigmarsOS kernel repos")
+    pacman = shutil.which("pacman") or "/usr/bin/pacman"
+    print("refreshing sync databases (pacman -Sy)")
+    return _stream([pacman, "-Sy", "--noconfirm"])
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     _harden()
@@ -668,6 +702,8 @@ def main(argv: list[str] | None = None) -> int:
             rc = _extras_repo_setup()
         elif verb == "chaotic-repo-setup":
             rc = _chaotic_repo_setup()
+        elif verb == "kernel-repo-setup":
+            rc = _kernel_repo_setup()
         else:
             raise ValueError(f"unhandled verb {verb}")
     except ValueError as exc:

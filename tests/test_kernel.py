@@ -26,6 +26,7 @@ def _row(pkg: str, installed: bool, running: bool) -> KernelRow:
 class KernelTest(unittest.TestCase):
     def test_running_matches(self) -> None:
         self.assertTrue(running_matches("linux-enigmarsos", "7.1.10-2-enigmarsos"))
+        self.assertTrue(running_matches("linux-enigmarsos-lts", "6.12.10-1-enigmarsos-lts"))
         self.assertFalse(running_matches("linux", "7.1.10-2-enigmarsos"))
         self.assertTrue(running_matches("linux-lts", "6.12.10-1-lts"))
         self.assertTrue(running_matches("linux-zen", "6.13.1-zen1-1-zen"))
@@ -48,7 +49,7 @@ class KernelTest(unittest.TestCase):
         with self.assertRaises(KernelSafetyError):
             assert_can_remove(rows, rows[1])
 
-    def test_inventory_hides_missing_and_fills_version(self) -> None:
+    def test_inventory_lists_all_flavors_with_availability(self) -> None:
         class FakeBE:
             def installed_versions(self) -> dict[str, str]:
                 return {"linux": "6.13.1-arch1-1"}
@@ -74,13 +75,23 @@ class KernelTest(unittest.TestCase):
         )
         rows = inventory(profile, FakeBE())  # type: ignore[arg-type]
         pkgs = {r.flavor.package for r in rows}
+        # Every catalog flavor is listed, even when its repo is not enabled,
+        # so install options are always visible.
         self.assertIn("linux", pkgs)
         self.assertIn("linux-lts", pkgs)
-        self.assertNotIn("linux-enigmarsos", pkgs)
+        self.assertIn("linux-enigmarsos", pkgs)
+        self.assertIn("linux-enigmarsos-lts", pkgs)
         linux = next(r for r in rows if r.flavor.package == "linux")
         self.assertTrue(linux.installed)
+        self.assertTrue(linux.available)
         self.assertTrue(linux.running)
         self.assertEqual(linux.version, "6.13.1-arch1-1")
+        rolling = next(r for r in rows if r.flavor.package == "linux-enigmarsos")
+        self.assertFalse(rolling.installed)
+        self.assertFalse(rolling.available)
+        lts = next(r for r in rows if r.flavor.package == "linux-enigmarsos-lts")
+        self.assertFalse(lts.installed)
+        self.assertFalse(lts.available)
 
     def test_packages_to_remove_headers(self) -> None:
         row = KernelRow(

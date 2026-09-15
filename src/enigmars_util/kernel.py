@@ -18,6 +18,7 @@ class KernelRow:
     installed: bool
     running: bool
     version: str
+    available: bool = False
 
 
 def running_matches(package: str, release: str) -> bool:
@@ -42,15 +43,17 @@ def inventory(profile: HostProfile, backend: PackageBackend) -> list[KernelRow]:
     available = backend.available_set(names) | set(installed)
     rows: list[KernelRow] = []
     for flavor in flavors:
+        # Always list every catalog flavor so install options are visible even
+        # when their repo is not enabled (or the sync db is stale); the UI
+        # marks availability and guides toward enabling repos / updating.
         inst = flavor.package in installed
-        if not inst and flavor.package not in available:
-            continue
         rows.append(
             KernelRow(
                 flavor,
                 inst,
                 running_matches(flavor.package, release),
                 installed.get(flavor.package, ""),
+                inst or flavor.package in available,
             )
         )
     if not rows:
@@ -60,6 +63,7 @@ def inventory(profile: HostProfile, backend: PackageBackend) -> list[KernelRow]:
                 True,
                 True,
                 release,
+                True,
             )
         )
     return rows

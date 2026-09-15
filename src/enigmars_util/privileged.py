@@ -109,3 +109,7 @@ def extras_repo_setup_cmd() -> list[str]:
 
 def chaotic_repo_setup_cmd() -> list[str]:
     return pkexec_cmd("chaotic-repo-setup")
+
+
+def kernel_repo_setup_cmd() -> list[str]:
+    return pkexec_cmd("kernel-repo-setup")

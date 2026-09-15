@@ -45,6 +45,7 @@ class CatalogTest(unittest.TestCase):
     def test_kernels_arch(self) -> None:
         pkgs = [k.package for k in load_kernels("arch")]
         self.assertIn("linux-enigmarsos", pkgs)
+        self.assertIn("linux-enigmarsos-lts", pkgs)
         self.assertIn("linux-cachyos", pkgs)
         self.assertIn("linux", pkgs)
 

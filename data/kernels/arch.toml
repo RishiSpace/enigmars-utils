@@ -5,6 +5,12 @@ recommended = true
 headers = "linux-enigmarsos-headers"
 
 [[kernel]]
+package = "linux-enigmarsos-lts"
+label = "EnigmarsOS LTS"
+recommended = false
+headers = "linux-enigmarsos-lts-headers"
+
+[[kernel]]
 package = "linux-cachyos"
 label = "CachyOS"
 recommended = false
